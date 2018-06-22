@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Project Euler Problem 8:
+Project Euler Problem 9:
 
 A Pythagorean triplet is a set of three natural numbers, a < b < c, for which,
 

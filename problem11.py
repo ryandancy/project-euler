@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Project Euler Problem 1:
+Project Euler Problem 11:
 
 In the 20×20 grid below, four numbers along a diagonal line have been marked in red.
 
