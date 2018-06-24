@@ -38,12 +38,8 @@ Using this, calculate the word values and whether they are triangle words. Very 
 from math import sqrt
 from ast import literal_eval
 
-memoized = {} # is memoization overkill? who cares?
 def is_triangle(t):
-  if t in memoized:
-    return memoized[t]
   result = sqrt(8*t + 1) % 2 == 1
-  memoized[t] = result
   return result
 
 def get_score(word):
