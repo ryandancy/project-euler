@@ -17,8 +17,6 @@ For n = 4 there are exactly three distinct solutions:
 What is the least value of n for which the number of distinct solutions exceeds one-thousand?
 """
 
-from itertools import count
-
 # Analysis of the equation:
 # 1/x + 1/y = 1/n
 # y/xy + x/xy = 1/n
@@ -42,6 +40,7 @@ from itertools import count
 # This solution based on this runs in ~6.5 minutes
 # Using sympy.ntheory.count_divisors it runs in ~30 seconds, but ehhh
 
+from itertools import count
 from math import sqrt
 from collections import Counter
 from functools import reduce
