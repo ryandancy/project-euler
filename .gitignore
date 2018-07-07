@@ -108,4 +108,4 @@ venv.bak/
 *.code-workspace
 
 # other
-o.txt
+o*.txt
