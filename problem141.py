@@ -16,78 +16,92 @@ The sum of all progressive perfect squares below one hundred thousand is 124657.
 Find the sum of all progressive perfect squares below one trillion (10^12).
 """
 
+'''
+If x, y, and z are integer elements of a geometric sequence (in order), then x/y = y/z -> y^2 = xz. As well, given the
+definitions in the question, n = qd + r. Since any of q, d, and r may be any term in the geometric sequence, there are
+three distinct possibilities:
+
+q = x, d = y, r = z / q = y, d = x, r = z
+q = y, d = z, r = x / q = z, d = y, r = x
+q = z, d = x, r = y / q = x, d = z, r = y
+
+Note that since multiplication is commutative, the values of q and d may always be swapped and the result will be the
+same; thus there are only these three distinct possibilities.
+
+We now rearrange each possibility to relate d to r:
+
+If q = x, d = y, and r = z, then:
+d^2 = qr
+q = d^2/r
+qd + r = n
+n = d(d^2/r) + r
+nr = d^3 + r^2
+d = cbrt(r(n - r))
+
+If q = y, d = z, and r = x, then:
+q^2 = dr
+q = sqrt(dr)
+qd + r = n
+d*sqrt(dr) + r = n
+d^3*r = (n - r)^2
+d = cbrt((n - r)^2/r)
+
+However, note that iff n/d = q with remainder r, then n/q = d with remainder r, since both give the equation n = qd + r.
+Thus q and d are entirely equivalent; the two equations above will give different results (the smaller and larger of the
+equivalent q and d), but both will have an integer solution if n in a progressive number.
+
+If q = z, d = x, and r = y, then:
+r^2 = qd
+qd + r = n
+r^2 + r = n
+However, note that n is a perfect square; thus r^2 + r = k^2 for some positive integer k. Then:
+r = k^2 - r^2 = (k + r)(k - r)
+However, the differences between squares (3, 5, 7, 9, ...) have a slope of 2, while the positive integers naturally have
+a slope of 1; thus the differences between squares outpace the square root of the lower square of the difference (r^2),
+and thus I submit that this equation has no positive integer solution and thus r != y.
+
+We now have two equations, either of which may be used to test for progressive numbers: d = cbrt(r(n - r)) and d =
+cbrt((n - r)^2/r). The former is simpler, so I have chosen to use it. Note that 0 < r < d < n; it has been observed
+(though not proven) that d < sqrt(n).
+
+Consider the first equation, d = cbrt(r(n - r)). There are two multiplicands here: r and n - r. For simplicity, let us
+define that a = r, b = n - r, and k = sqrt(n), all of which are integers. The problem then becomes the following: for
+0 < a < b < k < sqrt(10^12) = 10^6, a + b = k^2, what is the sum of all values of k^2 for which ab is a perfect cube?
+
+This problem is solved through iterating through the perfect cubes (where the cube root, d, is less than 10^6) and
+checking their divisors. All non-equal divisor pairs ((a, cube / a) for a < sqrt(cube)) are checked; if a + b is square
+and less than 10^12 and a is less than the cube root (d), the solution is checked to make sure a + b actually fits the
+constraints of a progressive perfect square (as three non-solutions were being marked as solutions), and if so, a + b
+is added to a running sum.
+
+sympy.ntheory.divisors is used to generate the divisors of each cube as it is much faster than a homegrown algorithm.
+This program outputs the correct answer in approximately 10 minutes.
+'''
+
 from math import sqrt
-import sys
+from sympy.ntheory import divisors
 
-#def is_perfect_cube(n):
-#  return int(round(n**(1/3)))**3 == n
+sum_ = 0
+found = 0
 
-sum_ = 9 # the only one with r=1
-num_found = 0
-
-for k in range(1, 1000000):
-  if k % 100 == 0:
-    sys.stderr.write('\rFound: {} | Sum: {} | Checked: k={} ({:.2f}%)'.format(num_found, sum_, k, k / 10000))
-    sys.stderr.flush()
+for d in range(1, 10**6):
+  cube = d ** 3
+  sqrt_cube = sqrt(cube)
   
-  n = k**2
-  n_squared = n**2
-  
-  # for r in range(1, k):
-  #   n_minus_r = n - r
-  #   d3_1 = r * n_minus_r
-  #   if is_perfect_cube(d3_1):
-  #     #print('d3_1', r, round(d3_1 ** (1/3)), n)
-  #     sum_ += n
-  #     num_found += 1
-  #     break
-    #d3_2 = n_minus_r**2 / r
-    #if is_perfect_cube(d3_2):
-      #print('d3_2', r, round(d3_2 ** (1/3)), n)
-      #break
-  #else:
-    #continue
-  
-  #found = False
-  
-  # for d in range(1, k):
-  #   d_cubed = d**3
-  #   r = n + (d_cubed + sqrt(d_cubed * (4*n + d_cubed))) / 2
-  #   if r.is_integer():
-  #     print(int(r), d, n)
-  #     found = True
-  #     break
-  
-  # if not found:
-  # found = False
-  
-  try:
-    for d in range(int((n - 1) ** (1/3)), k):
-      r2 = n - sqrt(n_squared - 4*d**3)
-      if r2 % 2 == 0 and r2 > 2:
-        #found = True
-        print(int(r2/2), d, n)
+  for a in divisors(cube):
+    if a >= sqrt_cube:
+      break
+    
+    b, remainder = divmod(cube, a)
+    if remainder == 0:
+      n = a + b
+      
+      if n > 10**12:
+        continue
+      
+      sqrt_n = sqrt(n)
+      if sqrt_n.is_integer() and a < d and n % d == a: # the last part is to make sure this is actually a solution
         sum_ += n
-        num_found += 1
-        break
-  except ValueError:
-    # Math domain error: didn't find one in time, continue
-    pass
-  
-  # if found:
-  #   continue
-  
-  # for d in range(1, k):
-  #   d_cubed = d**3
-  #   r = n + (d_cubed + sqrt(d_cubed*(4*n + d_cubed))) / 2
-  #   if r.is_integer() and r < d:
-  #     print('b', r, d, n)
-  #     sum_ += n
-  #     num_found += 1
-  #     break
-  
-  #if found:
+        found += 1
 
-print()
 print(sum_)
-sys.stderr.write('\n{}\n'.format(sum_))
