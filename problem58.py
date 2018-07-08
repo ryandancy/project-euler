@@ -22,6 +22,11 @@ process is continued, what is the side length of the square spiral for which the
 first falls below 10%?
 """
 
+# The numbers on the diagonals are formed by adding a certain amount, starting at 2, for 4 numbers, then increasing that
+# amount by 2. The diagonals are thus: (1), (3, 5, 7, 9), (13, 17, 21, 25), (31, 37, 43, 49), ...
+# Using this, simply add side lengths and count primes until primes/total < 0.1
+# Runs in ~30 seconds
+
 from math import sqrt
 
 def is_prime(n):
@@ -29,21 +34,6 @@ def is_prime(n):
     if n % divisor == 0:
       return False
   return True
-
-all_primes = set()
-start_generating_primes_at = 2
-
-def populate_primes_up_to(n): # inclusive
-  global start_generating_primes_at
-  
-  for p in range(start_generating_primes_at, n + 1):
-    for prime in all_primes:
-      if p % prime == 0:
-        break
-    else:
-      all_primes.add(p)
-  
-  start_generating_primes_at = n + 1
 
 primes = 0
 total = 1 # including 1
@@ -60,10 +50,8 @@ while primes / total >= 0.1 or primes == 0:
   
   new_last = last + currently_adding * 4
   
-  #populate_primes_up_to(new_last)
-  
   for diagonal in range(last + currently_adding, new_last + 1, currently_adding):
-    if is_prime(diagonal): #diagonal in all_primes:
+    if is_prime(diagonal):
       primes += 1
   
   total += 4
