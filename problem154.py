@@ -20,8 +20,9 @@ The result is Pascal's pyramid and the numbers at each level n are the coefficie
 How many coefficients in the expansion of (x + y + z)^200000 are multiples of 10^12?
 """
 
+# KEEP TRACK OF 2 AND 5 so that if a has 2, b has 5, that combines to a 10
 
-from sympy.ntheory import factorint
+
 import sys
 
 
@@ -32,30 +33,20 @@ def get_powers(x, prime):
   return powers - 1
 
 
-def add_dicts(d, addend):
-  for key, val in addend.items():
-    if key in d:
-      d[key] += val
-    else:
-      d[key] = val
-
-
 memoized = {}
-def get_factorial_prime_factors(x):
+def get_factorial_2_5_factors(x):
   if x in memoized:
     return memoized[x]
   
-  sum_factors = {}
+  sum_2 = 0
+  sum_5 = 0
   
   for y in range(1, x + 1):
-    if y % 1000 == 0:
-      sys.stdout.write('\rPrime factors generated up to {}'.format(y))
-      sys.stdout.flush()
-    
-    add_dicts(sum_factors, factorint(y))
+    sum_2 += get_powers(y, 2)
+    sum_5 += get_powers(y, 5)
     
     # Fill in memoized to make it easier - this part should only be called for the original n
-    memoized[y] = sum_factors.copy()
+    memoized[y] = (sum_2, sum_5)
   
   # Not adding to memoized here because the previous if statement will have done so already
   return memoized[x]
@@ -67,26 +58,11 @@ def get_multiplier(*partition):
   return DISTINCT_TO_MULTIPLIER[len(set(partition))]
 
 
-def check_prime_factors(n_prime_factors, abc_prime_factors, powers_10_to_beat):
-  delta_prime_factors = n_prime_factors - abc_prime_factors
-  
-  # check that we didn't exhaust any of the prime factors - that would cause a bad
-  if delta_prime_factors.keys() != n_prime_factors.keys():
-    return False
-  
-  # check that the powers of 10 are good
-  powers_10 = min(delta_prime_factors[2], delta_prime_factors[5])
-  return powers_10 <= powers_10_to_beat
-
-
 def main(n=200000):
-  print('Generating prime factors for n up to {}...'.format(n))
-  n_prime_factors = get_factorial_prime_factors(n)
-  total_powers_10 = min(n_prime_factors[2], n_prime_factors[5])
-  print('\nAll factorial powers of 10 generated: total =', total_powers_10)
-  
-  sys.stderr.write(str(memoized[1]) + '\n')
-  sys.stderr.flush()
+  print('Generating 2- and 5-factors for n up to {}...'.format(n))
+  n_2_5_factors = get_factorial_2_5_factors(n)
+  total_powers_10 = min(n_2_5_factors)
+  print('All factorial powers of 10 generated: total =', total_powers_10)
   
   powers_10_to_beat = total_powers_10 - 12
   
@@ -104,21 +80,24 @@ def main(n=200000):
     
     b = n - a
     
-    a_factorial_prime_factors = get_factorial_prime_factors(a)
+    a_2_factors, a_5_factors = get_factorial_2_5_factors(a)
     
     # the length 2 partition
     
-    prime_factors = a_factorial_prime_factors + get_factorial_prime_factors(b) # 0! = 1, no 10-factors
-    if check_prime_factors(n_prime_factors, prime_factors, powers_10_to_beat):
-      sys.stderr.write('{} {} 0, {}\n'.format(a, b, 3 if a == b else 6))
+    b_2_factors, b_5_factors = get_factorial_2_5_factors(b)
+    ab_10_factors = min(a_2_factors + b_2_factors, a_5_factors + b_5_factors)
+    if ab_10_factors <= powers_10_to_beat:
       num_multiples_10_12 += 3 if a == b else 6 # faster than call to get_multiplier, I think
     
     # each length 3 partition
     for c in range(a, b // 2 + 1):
       new_b = b - c
-      prime_factors = a_factorial_prime_factors + get_factorial_prime_factors(new_b) + get_factorial_prime_factors(c)
-      if check_prime_factors(n_prime_factors, prime_factors, powers_10_to_beat):
-        sys.stderr.write('{} {} {}, {}\n'.format(a, new_b, c, get_multiplier(a, new_b, c)))
+      
+      new_b_2_factors, new_b_5_factors = get_factorial_2_5_factors(new_b)
+      c_2_factors, c_5_factors = get_factorial_2_5_factors(c)
+      abc_10_factors = min(a_2_factors + new_b_2_factors + c_2_factors, a_5_factors + new_b_5_factors + c_5_factors)
+      
+      if abc_10_factors <= powers_10_to_beat:
         num_multiples_10_12 += get_multiplier(a, new_b, c)
   
   print('\nTotal number of multiples of 10^12 found:', num_multiples_10_12)
