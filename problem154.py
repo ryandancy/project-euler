@@ -20,7 +20,35 @@ The result is Pascal's pyramid and the numbers at each level n are the coefficie
 How many coefficients in the expansion of (x + y + z)^200000 are multiples of 10^12?
 """
 
-# KEEP TRACK OF 2 AND 5 so that if a has 2, b has 5, that combines to a 10
+
+'''
+The value of a coefficient in a k-nomial expansion -- the expansion of (x_1 + x_2 + ... + x_k)^n -- is equal to
+n! / (a_1! * a_2! * ... * a_k!) where a_1 + a_2 + ... + a_k = n. Specifically, the value of any coefficient in the
+200000th row of Pascal's pyramid is 200000! / (a! * b! * c!) where a + b + c = 200000.
+
+Now, note that we are looking only for the coefficients which are divisible by 10^12. This is the case if the number of
+"10-factors" (integer x where 10^x * y = z for some integer y and the given integer z) in 200000! minus those in
+a! * b! * c! is greater than or equal to 12. Since 10 = 5*2, the number of 10-factors in a number is equal the the
+smaller of its number of 5-factors and 2-factors; thus a coefficient for given integers a, b, c where a + b + c =
+200000 is divisible by 10^12 if the smaller of the number of 5-factors and 2-factors in 200000! minus the smaller of
+the total number of 2-factors in a! * b! * c! and the total number of 5-factors in that number is greater than or equal
+to 12.
+
+Now, the nth layer of Pascal's pyramid contains all coefficients n!/(a!*b!*c!) where the integers a + b + c = n -- the
+coefficients for all compositions of n of length 3 or fewer. However, it is computationally simpler to simply calculate
+the partitions of n of length 3 or fewer and count the number of times that that partition appears in the nth layer of
+Pascal's pyramid -- i.e., how many distinct ways that combination may be arranged. This can be calculated by determining
+the number of distinct elements that exist in the partition. With all 3 elements distinct, the partition appears 6
+times; with 2 distinct elements, it appears 3 times; and with only 1 distinct element (all elements the same), the
+partition appears only once. This is used to simplify computation.
+
+This program begins by calculating the number of 2-factors and 5-factors in the factorial of every number up to
+200000 and storing for future reference. It then iterates through all distinct length 2 partitions of 200000,
+calculating the total number of 2-factors and 5-factors and comparing that minimum to that of 200000; for each length
+2 partition, the length 3 partitions are also generated and checked.
+
+This program finds the correct answer in approximately 1 hour.
+'''
 
 
 import sys
@@ -59,12 +87,10 @@ def get_multiplier(*partition):
 
 
 def main(n=200000):
-  print('Generating 2- and 5-factors for n up to {}...'.format(n))
-  n_2_5_factors = get_factorial_2_5_factors(n)
-  total_powers_10 = min(n_2_5_factors)
-  print('All factorial powers of 10 generated: total =', total_powers_10)
-  
-  powers_10_to_beat = total_powers_10 - 12
+  print('Generating 2-factors and 5-factors for n up to {}...'.format(n))
+  n_2_factors, n_5_factors = get_factorial_2_5_factors(n)
+  print('All factorial powers of 10 generated: total 2-factors = {}, total 5-factors = {}'
+        .format(n_2_factors, n_5_factors))
   
   num_multiples_10_12 = 0
   
@@ -85,8 +111,9 @@ def main(n=200000):
     # the length 2 partition
     
     b_2_factors, b_5_factors = get_factorial_2_5_factors(b)
-    ab_10_factors = min(a_2_factors + b_2_factors, a_5_factors + b_5_factors)
-    if ab_10_factors <= powers_10_to_beat:
+    ab_2_factors, ab_5_factors = a_2_factors + b_2_factors, a_5_factors + b_5_factors
+    
+    if min(n_2_factors - ab_2_factors, n_5_factors - ab_5_factors) >= 12:
       num_multiples_10_12 += 3 if a == b else 6 # faster than call to get_multiplier, I think
     
     # each length 3 partition
@@ -95,9 +122,11 @@ def main(n=200000):
       
       new_b_2_factors, new_b_5_factors = get_factorial_2_5_factors(new_b)
       c_2_factors, c_5_factors = get_factorial_2_5_factors(c)
-      abc_10_factors = min(a_2_factors + new_b_2_factors + c_2_factors, a_5_factors + new_b_5_factors + c_5_factors)
       
-      if abc_10_factors <= powers_10_to_beat:
+      abc_2_factors = a_2_factors + new_b_2_factors + c_2_factors
+      abc_5_factors = a_5_factors + new_b_5_factors + c_5_factors
+      
+      if min(n_2_factors - abc_2_factors, n_5_factors - abc_5_factors) >= 12:
         num_multiples_10_12 += get_multiplier(a, new_b, c)
   
   print('\nTotal number of multiples of 10^12 found:', num_multiples_10_12)
