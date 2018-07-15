@@ -19,6 +19,13 @@ Note: In your calculations you may assume that a calculated angle is integral if
 integer value.
 """
 
+'''
+This program does not work, but it *should*.
+
+Let each quadrilateral be PQRS. This program generates every P, Q, R, and S which are not rotations nor reflections of
+each other, to eliminate those that are similar based on angles.
+'''
+
 
 import sys
 from math import sin, radians
@@ -104,10 +111,10 @@ for p, q, r, s in gen_pqrs():
     ps = sin(brad) / sin(grad)
     
     # check if any rotation is proportional
-    if ((qr, rs, ps) not in side_lengths and (rs/qr, ps/qr, 1/qr) not in side_lengths and
+    if (qr, rs, ps) not in side_lengths and (p != q != r != s or ((rs/qr, ps/qr, 1/qr) not in side_lengths and
         (ps/rs, 1/rs, qr/rs) not in side_lengths and (1/ps, qr/ps, rs/ps) not in side_lengths and
         (1/qr, ps/qr, rs/qr) not in side_lengths and (qr/rs, 1/rs, ps/rs) not in side_lengths and
-        (rs/ps, qr/ps, 1/ps) not in side_lengths):
+        (rs/ps, qr/ps, 1/ps) not in side_lengths)):
       # sys.stderr.write('P={}, Q={}, R={}, S={} | a={}, b={}, c={}, d={}, e={}, f={}, g={}, h={} | x={}, y={}\n'
       #   .format(p, q, r, s, a, b, c, d, e, f, g, h, x, y))
       side_lengths.add((qr, rs, ps))
