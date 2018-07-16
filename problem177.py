@@ -59,6 +59,31 @@ def gen_pqrs(n=360, m=180):
         p += 1
         s = n - p - q - r
 
+def similar(side_lengths, qr, rs, ps, p, q, r, s):
+  pq = 1
+  
+  for (rot_pq, rot_qr, rot_rs, rot_ps), (rot_p, rot_q, rot_r, rot_s) in [
+        ((pq, qr, rs, ps), (p, q, r, s)),
+        ((pq, ps, rs, qr), (p, s, r, q)),
+        ((qr, pq, ps, rs), (q, p, s, r)),
+        ((qr, rs, ps, pq), (q, r, s, p)),
+        ((rs, qr, pq, ps), (r, q, p, s)),
+        ((rs, ps, pq, qr), (r, s, p, q)),
+        ((ps, pq, qr, rs), (s, p, q, r)),
+        ((ps, rs, qr, pq), (s, r, q, p)),
+      ]:
+    if (rot_p, rot_q, rot_r, rot_s) != (p, q, r, s):
+      continue
+    
+    adj_qr, adj_rs, adj_ps = rot_qr / rot_pq, rot_rs / rot_pq, rot_ps / rot_pq
+    
+    if (adj_qr, adj_rs, adj_ps) in side_lengths:
+      sys.stderr.write('sides = ({}, {}, {}), similar to ({}, {}, {})\n'
+        .format(qr, rs, ps, adj_qr, adj_rs, adj_ps))
+      return True
+  
+  return False
+
 total = 0
 
 for p, q, r, s in gen_pqrs():
@@ -111,10 +136,7 @@ for p, q, r, s in gen_pqrs():
     ps = sin(brad) / sin(grad)
     
     # check if any rotation is proportional
-    if (qr, rs, ps) not in side_lengths and (p != q != r != s or ((rs/qr, ps/qr, 1/qr) not in side_lengths and
-        (ps/rs, 1/rs, qr/rs) not in side_lengths and (1/ps, qr/ps, rs/ps) not in side_lengths and
-        (1/qr, ps/qr, rs/qr) not in side_lengths and (qr/rs, 1/rs, ps/rs) not in side_lengths and
-        (rs/ps, qr/ps, 1/ps) not in side_lengths)):
+    if not similar(side_lengths, qr, rs, ps, p, q, r, s):
       # sys.stderr.write('P={}, Q={}, R={}, S={} | a={}, b={}, c={}, d={}, e={}, f={}, g={}, h={} | x={}, y={}\n'
       #   .format(p, q, r, s, a, b, c, d, e, f, g, h, x, y))
       side_lengths.add((qr, rs, ps))
