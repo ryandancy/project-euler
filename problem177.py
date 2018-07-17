@@ -26,11 +26,8 @@ Let each quadrilateral be PQRS. This program generates every P, Q, R, and S whic
 each other, to eliminate those that are similar based on angles.
 '''
 
-
 import sys
-from math import sin, radians
 from itertools import product
-
 
 def gen_pqrs(n=360, m=180):
   p = q = r = 2
@@ -59,38 +56,31 @@ def gen_pqrs(n=360, m=180):
         p += 1
         s = n - p - q - r
 
-def similar(side_lengths, qr, rs, ps, p, q, r, s):
-  pq = 1
-  
-  for (rot_pq, rot_qr, rot_rs, rot_ps), (rot_p, rot_q, rot_r, rot_s) in [
-        ((pq, qr, rs, ps), (p, q, r, s)),
-        ((pq, ps, rs, qr), (p, s, r, q)),
-        ((qr, pq, ps, rs), (q, p, s, r)),
-        ((qr, rs, ps, pq), (q, r, s, p)),
-        ((rs, qr, pq, ps), (r, q, p, s)),
-        ((rs, ps, pq, qr), (r, s, p, q)),
-        ((ps, pq, qr, rs), (s, p, q, r)),
-        ((ps, rs, qr, pq), (s, r, q, p)),
+def similar(angles_set, a, b, c, d, e, f, g, h):
+  for angle_rot in [
+        (h, a, b, c, d, e, f, g), # PQRS
+        (b, c, d, e, f, g, h, a), # QRSP
+        (d, e, f, g, h, a, b, c), # RSPQ
+        (f, g, h, a, b, c, d, e), # SPQR
+        # Now flipped:
+        (g, f, e, d, c, b, a, h), # SRQP
+        (a, h, g, f, e, d, c, b), # PSRQ
+        (c, b, a, h, g, f, e, d), # QPSR
+        (e, d, c, b, a, h, g, f), # RQPS
       ]:
-    if (rot_p, rot_q, rot_r, rot_s) != (p, q, r, s):
-      continue
-    
-    adj_qr, adj_rs, adj_ps = rot_qr / rot_pq, rot_rs / rot_pq, rot_ps / rot_pq
-    
-    if (adj_qr, adj_rs, adj_ps) in side_lengths:
-      sys.stderr.write('sides = ({}, {}, {}), similar to ({}, {}, {})\n'
-        .format(qr, rs, ps, adj_qr, adj_rs, adj_ps))
+    if angle_rot in angles_set:
       return True
-  
   return False
 
 total = 0
+old_p = 0
 
 for p, q, r, s in gen_pqrs():
-  if total % 1000 == 0:
+  if p != old_p:
     sys.stdout.write('\rtotal = {}, PQRS = {}'.format(total, (p, q, r, s)))
+    old_p = p
   
-  side_lengths = set() # set of (QR, RS, PS) relative to PQ = 1
+  angles_set = set() # set of (a, b, c, d, e, f, g, h)
   
   for a, b in product(range(1, p), range(1, q)):
     # derive the rest of the angles from a and b
@@ -117,34 +107,13 @@ for p, q, r, s in gen_pqrs():
     e = r - d
     if e < 1: continue
     
-    #total += 1
-    
-    # convert all used in the side length calculations to radians
-    arad = radians(a)
-    brad = radians(b)
-    crad = radians(c)
-    drad = radians(d)
-    frad = radians(f)
-    grad = radians(g)
-    
-    sina = sin(arad)
-    sind = sin(drad)
-    
-    # calculate side lengths; PQ = 1 assumed
-    qr = sina / sind
-    rs = (sina * sin(crad)) / (sin(frad) * sind)
-    ps = sin(brad) / sin(grad)
-    
-    # check if any rotation is proportional
-    if not similar(side_lengths, qr, rs, ps, p, q, r, s):
-      # sys.stderr.write('P={}, Q={}, R={}, S={} | a={}, b={}, c={}, d={}, e={}, f={}, g={}, h={} | x={}, y={}\n'
-      #   .format(p, q, r, s, a, b, c, d, e, f, g, h, x, y))
-      side_lengths.add((qr, rs, ps))
+    if not similar(angles_set, a, b, c, d, e, f, g, h):
+      angles_set.add((h, a, b, c, d, e, f, g)) # odd order is implementation detail in similar()
     else:
       sys.stderr.write('REJECT: P={}, Q={}, R={}, S={} | a={}, b={}, c={}, d={}, e={}, f={}, g={}, h={} | x={}, y={}\n'
         .format(p, q, r, s, a, b, c, d, e, f, g, h, x, y))
   
-  total += len(side_lengths)
+  total += len(angles_set)
 
 print()
 print(total)
