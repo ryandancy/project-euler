@@ -28,6 +28,7 @@ each other, to eliminate those that are similar based on angles.
 
 import sys
 from itertools import product
+from math import ceil
 
 def gen_pqrs(n=360, m=180):
   p = q = r = 2
@@ -56,33 +57,23 @@ def gen_pqrs(n=360, m=180):
         p += 1
         s = n - p - q - r
 
-def similar(angles_set, a, b, c, d, e, f, g, h):
-  for angle_rot in [
-        (h, a, b, c, d, e, f, g), # PQRS
-        (b, c, d, e, f, g, h, a), # QRSP
-        (d, e, f, g, h, a, b, c), # RSPQ
-        (f, g, h, a, b, c, d, e), # SPQR
-        # Now flipped:
-        (g, f, e, d, c, b, a, h), # SRQP
-        (a, h, g, f, e, d, c, b), # PSRQ
-        (c, b, a, h, g, f, e, d), # QPSR
-        (e, d, c, b, a, h, g, f), # RQPS
-      ]:
-    if angle_rot in angles_set:
-      return True
-  return False
-
 total = 0
 old_p = 0
 
 for p, q, r, s in gen_pqrs():
   if p != old_p:
-    sys.stdout.write('\rtotal = {}, PQRS = {}'.format(total, (p, q, r, s)))
+    sys.stdout.write('\rtotal = {}, PQRS = {} ({:.2f}%)'.format(total, (p, q, r, s), (p / 90) * 100))
     old_p = p
   
-  angles_set = set() # set of (a, b, c, d, e, f, g, h)
+  this_pqrs_total = 0
   
-  for a, b in product(range(1, p), range(1, q)):
+  if p == q and r == s:
+    # trapezoid: a = b
+    ab_func = zip
+  else:
+    ab_func = product
+  
+  for a, b in ab_func(range(1, p), range(1, q)):
     # derive the rest of the angles from a and b
     h = p - a
     if h < 1: continue
@@ -107,13 +98,12 @@ for p, q, r, s in gen_pqrs():
     e = r - d
     if e < 1: continue
     
-    if not similar(angles_set, a, b, c, d, e, f, g, h):
-      angles_set.add((h, a, b, c, d, e, f, g)) # odd order is implementation detail in similar()
-    else:
-      sys.stderr.write('REJECT: P={}, Q={}, R={}, S={} | a={}, b={}, c={}, d={}, e={}, f={}, g={}, h={} | x={}, y={}\n'
-        .format(p, q, r, s, a, b, c, d, e, f, g, h, x, y))
+    this_pqrs_total += 1
   
-  total += len(angles_set)
+  if p == r or q == s:
+    this_pqrs_total = ceil(this_pqrs_total / 2)
+  
+  total += this_pqrs_total
 
 print()
 print(total)
