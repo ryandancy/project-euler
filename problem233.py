@@ -56,25 +56,26 @@ def nth_prime_non_1mod4(n): # also zero-indexed
 
 LIMIT = 10**11
 
-def total_for_1mod4_combo(base_num, highest_non_1mod4_idx=None):
+def total_for_1mod4_combo(base_num, highest_non_1mod4_idx=None, start_at=0):
   this_total = 0
   
   if highest_non_1mod4_idx is None:
     highest_non_1mod4_idx = 0
     
-    while base_num * nth_prime_non_1mod4(highest_non_1mod4_idx) <= LIMIT:
-      this_total += total_for_1mod4_combo(base_num, highest_non_1mod4_idx)
-      highest_non_1mod4_idx += 1
-      #print(base_num, this_total, highest_non_1mod4_idx)
+    sys.stderr.write(str(base_num) + '\n') # so that it makes it into the log
     
-    return this_total + 1 # adding 1 for the all 0s case
+    while base_num * nth_prime_non_1mod4(highest_non_1mod4_idx) <= LIMIT:
+      this_total += total_for_1mod4_combo(base_num, highest_non_1mod4_idx, 1)
+      highest_non_1mod4_idx += 1
+    
+    return this_total + base_num # adding base_num for the all 0s case
   elif highest_non_1mod4_idx == -1:
     sys.stderr.write(str(base_num) + '\n')
-    return 1
+    return base_num
   
   highest_non_1mod4_prime = nth_prime_non_1mod4(highest_non_1mod4_idx)
   
-  for power in count(1):
+  for power in count(start_at):
     composed = base_num * highest_non_1mod4_prime**power
     if composed > LIMIT:
       break
@@ -98,7 +99,7 @@ def total_length_3_combo(p0, p1, p2, n): # return: (total, continue with this co
       num = nth_prime_1mod4(prime_0_idx)**p0 * nth_prime_1mod4(prime_1_idx)**p1 * nth_prime_1mod4(n)**p2
       
       if n % 100 == 0 and prime_0_idx == 0 and prime_1_idx == 1:
-        print(n, num)
+        print(n, num, '{:.2f}%'.format(num / LIMIT * 100))
       
       if num > LIMIT:
         if prime_0_idx == 0 and prime_1_idx == 1:
