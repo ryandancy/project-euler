@@ -11,7 +11,14 @@ result will always be prime. For example, taking 7 and 109, both 7109 and 1097 a
 Find the lowest sum for a set of five primes for which any two primes concatenate to produce another prime.
 """
 
-from itertools import count, permutations
+'''
+This solution generates lists of valid concatenatable prime sets first of length 1 (i.e. every prime), then length 2, 3,
+4, and finally 5, in order of their sums. It does this by, at each recursive step, looping through each prime up to the
+lowest prime in the previous list and checking if it concatenates with each element in the previous list. The program
+ends when the first length-5 prime set is generated. This program runs in approximately 12 minutes.
+'''
+
+from itertools import count
 from math import sqrt
 
 primes = []
@@ -41,32 +48,23 @@ def is_prime(n):
   
   return True
 
-invalid_subsets = []
+def gen_valid_prime_lists(howmany=5): # yields (list of primes, last_idx)
+  if howmany == 1:
+    yield from map(lambda n: ([nth_prime(n)], n), count())
+  else:
+    for valid, last_idx in gen_valid_prime_lists(howmany - 1):
+      for prime_idx in range(last_idx):
+        prime = primes[prime_idx] # it's less than the previous prime so primes will be filled in
+        if is_pair_set(valid, prime):
+          yield [*valid, prime], prime_idx
 
-def gen_prime_sets(howmany=5, max_=None, add=set()):
-  if howmany == 0:
-    yield add
-    return
-  
-  # exclude the 0th prime (2) because it can't be in a prime pair set
-  for n in count(howmany) if max_ is None else range(howmany, max_):
-    if howmany == 5: print(n)
-    
-    add2 = add | {nth_prime(n)}
-    
-    for invalid in invalid_subsets:
-      if invalid < add2:
-        break
-    else:
-      yield from gen_prime_sets(howmany - 1, n, add2)
-
-def is_pair_set(prime_set):
-  for pair in permutations(prime_set, 2):
-    pair_num = int(''.join(map(str, pair)))
-    if not is_prime(pair_num):
-      invalid_subsets.append(set(pair))
+def is_pair_set(base_set, addition):
+  for base in base_set:
+    base_str = str(base)
+    addition_str = str(addition)
+    if not is_prime(int(base_str + addition_str)) or not is_prime(int(addition_str + base_str)):
       return False
   return True
 
 if __name__ == '__main__':
-  print(sum(next(prime_set for prime_set in gen_prime_sets() if is_pair_set(prime_set))))
+  print(sum(next(gen_valid_prime_lists())[0]))
