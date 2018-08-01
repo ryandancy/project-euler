@@ -10,9 +10,13 @@ squarefree, but not 4, 8, 9, 12.
 How many squarefree numbers are there below 2^50?
 """
 
-# bleh, too slow
+from time import time
+from itertools import compress, combinations
 
-from itertools import compress
+def millis():
+  return round(time() * 1000)
+
+prevtime = millis()
 
 def product(x):
   result = 1
@@ -41,11 +45,31 @@ print('Found {} squares'.format(len(squares)))
 total = LIMIT
 subtract = True
 
-for i in range(1, len(squares)):
-  print(total)
-  for shift in range(len(squares) - i):
-    adjust = LIMIT // product(squares[i:i+shift])
+# works, but still too slow
+
+for i in range(1, len(squares) + 1):
+  newtime = millis()
+  print(i, '/', len(squares), ' iterations, total = ', total, ', time = ', newtime - prevtime, ' ms', sep='')
+  prevtime = newtime
+  # for shift in range(len(squares) - i + 1):
+    # adjust = LIMIT // product(squares[shift:i+shift])
+  
+  for combo in combinations(squares, i):
+    if combo[0]**i > LIMIT:
+      break
+    p = product(combo)
+    if p > LIMIT:
+      continue
+    adjust = LIMIT // p
     total += -adjust if subtract else adjust
+  
+  # products = list(map(product, zip(products, squares[i:])))
+  # products = [
+  #   p1*p2
+  #   for i, p1 in enumerate(products)
+  #   for p2 in squares[i:]
+  #   if p1*p2 <= LIMIT
+  # ]
   subtract = not subtract
 
 print(total)
