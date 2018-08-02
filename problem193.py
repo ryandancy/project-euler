@@ -13,13 +13,20 @@ How many squarefree numbers are there below 2^50?
 import sys
 from time import time
 from itertools import compress, count
+from math import factorial
 
 def millis():
   return round(time() * 1000)
 
+def product(x):
+  r = 1
+  for n in x:
+    r *= n
+  return r
+
 prevtime = millis()
 
-LIMIT = 6000000#2**50
+LIMIT = 2**50
 
 # yields: [(product, start_next_at_idx), ...]
 def limited_products(pool, r, previous):
@@ -51,9 +58,53 @@ for i in range(3, int(N**0.5) + 1, 2):
   if sieve[i//2]:
     sieve[i*i//2::i] = bytearray((N-i*i-1)//(2*i)+1)
 
-squares = [4, *map(lambda x: x*x, compress(range(3, N, 2), sieve[1:]))]
+primes = [2, *compress(range(3, N, 2), sieve[1:])]
+squares = [x**2 for x in primes]
 
-print('Found {} squares'.format(len(squares)))
+print('Found {} primes'.format(len(primes)))
+#print(primes)
+
+# def binomial(n, k):
+#   try:
+#     return factorial(n) // factorial(k) // factorial(n - k)
+#   except ValueError:
+#     return 0
+
+# Number of squarefree is number of combinations of primes, b/c if prime factors have exponent >2 then not squarefree
+# total = len(primes) + 1 # to count 1 as squarefree
+
+# for num_primes in range(2, len(primes)):
+#   if product(primes[:num_primes]) > LIMIT:
+#     break
+  
+  
+  
+  # find lowest combo < limit
+  # found = []
+  # found_indices = []
+  # shift = 0
+  # for searching_primes in reversed(range(1, num_primes + 1)):
+  #   while product(found + primes[shift:searching_primes+shift]) < LIMIT:
+  #     shift += 1
+  #     if shift > len(primes) - searching_primes:
+  #       break
+  #   else:
+  #     found.append(primes[shift - 1])
+  #     found_indices.append(len(primes) - shift)
+  
+  # if not found:
+  #   total += binomial(len(primes), num_primes)
+  #   print('For {} primes, there are {} valid'.format(num_primes, binomial(len(primes), num_primes)))
+  #   continue
+  
+  # # find its position in the combos, that's how many are good
+  # pos = sum(binomial(prime_idx, idx + 1) for idx, prime_idx in enumerate(reversed(found_indices)))
+  # to_add = binomial(len(primes), num_primes) - pos
+  # print(found, found_indices)
+  # print('For {} primes, there are {} valid, pos = {}'.format(num_primes, to_add, pos))
+  # total += to_add
+
+# print(total)
 
 # Use inclusion-exclusion to find the number of squarefree numbers
 
@@ -71,10 +122,10 @@ for i in count(1):
   if not lim_prods:
     break
   
-  sys.stderr.write('-------------------------------------------\n')
+  #sys.stderr.write('-------------------------------------------\n')
   
   for plist in lim_prods:
-    sys.stderr.write(str(plist) + '\n')
+    #sys.stderr.write(str(plist) + '\n')
     for p, _ in plist:
       #sys.stderr.write(str(p) + ', ' + str(_) + '\n')
       adjust = LIMIT // p
@@ -84,13 +135,17 @@ for i in count(1):
 
 print(total)
 
-def brute_force():
-  total = 0
-  for n in range(1, LIMIT + 1):
-    for square in squares:
-      if n % square == 0:
-        break
-    else:
-      total += 1
-  return total
-print(brute_force())
+# from sympy.ntheory import factorint
+
+# def brute_force():
+#   total = 0
+#   for n in range(1, LIMIT):
+#     for square in squares:
+#       if n % square == 0:
+#         break
+#     else:
+#       #sys.stderr.write(str(n) + ' | ' + str(factorint(n)) + '\n')
+#       #sys.stderr.write(str(n) + '\n')
+#       total += 1
+#   return total
+# print(brute_force())
