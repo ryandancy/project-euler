@@ -10,67 +10,36 @@ squarefree, but not 4, 8, 9, 12.
 How many squarefree numbers are there below 2^50?
 """
 
+import sys
 from time import time
-from itertools import compress, combinations, count
+from itertools import compress, count
 
 def millis():
   return round(time() * 1000)
 
 prevtime = millis()
 
-def product(x):
-  result = 1
-  for n in x:
-    result *= n
-  return result
+LIMIT = 6000000#2**50
 
-LIMIT = 2**50
-
+# yields: [(product, start_next_at_idx), ...]
 def limited_products(pool, r, previous):
   if r == 1:
-    yield from pool
+    yield [(p, i+1) for i, p in enumerate(pool)]
   else:
     # previous better not be None
-    for i, p in enumerate(previous):
-      for x in pool[i+r-1:]:
-        prod = x*p
-        if prod > LIMIT:
+    for plist in previous:
+      for i, (p, start_next_at_idx) in enumerate(plist):
+        these_prods = []
+        for j, x in enumerate(pool[start_next_at_idx:]):
+          prod = x*p
+          if prod > LIMIT:
+            break
+          these_prods.append((prod, start_next_at_idx + j + 1))
+        if not these_prods:
           break
-        yield prod
-      else:
-        continue
-      if x == pool[i+r-1]:
+        yield these_prods
+      if i == 0:
         break
-  
-  # n = len(pool)
-  # if r > n:
-  #   return
-  
-  # indices = list(range(r))
-  # yield product(pool[i] for i in indices)
-  
-  # revrange = list(reversed(range(r)))
-  
-  # while True:
-  #   for i in revrange:
-  #     if indices[i] != i + n - r:
-  #       break
-  #   else:
-  #     return
-    
-  #   indices[i] += 1
-  #   for j in range(i+1, r):
-  #     indices[j] = indices[j-1] + 1
-    
-  #   p = product(pool[i] for i in indices)
-  #   if p <= LIMIT:
-  #     yield p
-  #   elif i == 0:
-  #     return
-  #   else:
-  #     indices[i-1] += 1
-  #     for j in range(i, r):
-  #       indices[j] = indices[j-1] + 1
 
 # Use a sieve to generate primes below sqrt(2^50) = 2^25 and their squares
 # This is apparently the fastest Python 3 prime sieve according to SO?
@@ -102,10 +71,26 @@ for i in count(1):
   if not lim_prods:
     break
   
-  for p in lim_prods:
-    adjust = LIMIT // p
-    total += -adjust if subtract else adjust
+  sys.stderr.write('-------------------------------------------\n')
+  
+  for plist in lim_prods:
+    sys.stderr.write(str(plist) + '\n')
+    for p, _ in plist:
+      #sys.stderr.write(str(p) + ', ' + str(_) + '\n')
+      adjust = LIMIT // p
+      total += -adjust if subtract else adjust
   
   subtract = not subtract
 
 print(total)
+
+def brute_force():
+  total = 0
+  for n in range(1, LIMIT + 1):
+    for square in squares:
+      if n % square == 0:
+        break
+    else:
+      total += 1
+  return total
+print(brute_force())
