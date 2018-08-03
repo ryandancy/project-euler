@@ -36,7 +36,7 @@ def A(k, n):
   )
 
 def p(n):
-  N = ceil(sqrt(n)) * 2
+  N = ceil(sqrt(n))
   return round(sum(
     sqrt(3/k) * (4/(24*n - 1)) * A(k, n) * U(C(n)/k)
     for k in range(1, N + 1)
