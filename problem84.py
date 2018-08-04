@@ -63,6 +63,13 @@ string: 102400.
 If, instead of using two 6-sided dice, two 4-sided dice are used, find the six-digit modal string.
 """
 
+# This is not a simulator!
+# We compute the probability of reaching each square from each other square, then repeatedly calculate the total chances
+# of landing on a square as a weighted average of the chances of reaching each square from a roll on each other square
+# using the previous total chances as the weights. This doesn't work for 6-sided dice, but does work for 4-sided dice
+# for some reason. This solution ignores the triple-double -> jail rule and considers the community chest/chance cards
+# to be randomly shuffled each time. Runs in ~0.5 seconds.
+
 from collections import Counter
 from itertools import product
 from fractions import Fraction
@@ -80,9 +87,9 @@ RAILWAYS = (5, 15, 25, 35)
 UTILITIES = (12, 28)
 
 NUM_DICE = 2
-DICE_SIDES = 6
+DICE_SIDES = 4
 
-ITERATIONS = 100
+ITERATIONS = 50
 
 total_rolls = DICE_SIDES ** NUM_DICE
 dice_chances = {
@@ -160,7 +167,6 @@ square_chances = list(map(roll, range(40)))
 
 chances = [Fraction(1, 40)] * 40
 
-# Issue: percents add to less than 100% because not every square can be reached from every other square
 for _ in range(ITERATIONS):
   chances = [
     sum(
@@ -170,14 +176,9 @@ for _ in range(ITERATIONS):
     )
     for i in range(40)
   ]
-  #print('After {} iterations, chances = {}'.format(_, chances))
 
 # Find highest 3
 highest0 = max(range(40), key=lambda i: chances[i])
 highest1 = max(set(range(40)) - {highest0}, key=lambda i: chances[i])
 highest2 = max(set(range(40)) - {highest0, highest1}, key=lambda i: chances[i])
 print(str(highest0) + str(highest1) + str(highest2))
-
-print('Chances:')
-for i, chance in enumerate(chances):
-  print('{}: {}'.format(i, chance.numerator / chance.denominator))
