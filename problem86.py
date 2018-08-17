@@ -22,7 +22,7 @@ Find the least value of M such that the number of solutions first exceeds one mi
 from math import sqrt
 
 def is_integer_dimens(a, b, c):
-  return min(sqrt(a**2 + (b + c)**2), sqrt(b**2 + (a + c)**2), sqrt(c**2 + (a + b)**2)).is_integer()
+  return sqrt(c**2 + (a + b)**2).is_integer()
 
 def with_m(m):
   result = 0
