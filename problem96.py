@@ -21,7 +21,16 @@ By solving all fifty puzzles find the sum of the 3-digit numbers found in the to
 example, 483 is the 3-digit number found in the top left corner of the solution grid above.
 """
 
-# There are wayyyy too many DRY violations in the strategies but whatever, it works
+# This is a purely deductive solution: no backtracking/guessing is used!
+# We load each puzzle into an instance of the class Puzzle (which provides utility methods as well as solve()), then
+# call the solve() method, which repeatedly calls several 'strategy' functions.
+# Puzzle keeps track both of the numbers on the board themselves and what candidate numbers could potentially be placed
+# in an empty cell.
+# Each strategy function attempts to either fill in a number or reduce the number of candidates. It then returns True
+# if it succeeded in doing so or False if it did not affect the board.
+# Using this, all 50 sudokus were solved and the answer obtained in ~0.35 seconds.
+# Sources for strategies include https://www.sudoku-solutions.com and
+# https://www.kristanix.com/sudokuepic/sudoku-solving-techniques.php.
 
 from itertools import combinations
 
@@ -107,7 +116,6 @@ def pointing_pair_block(puzzle):
           for x1, y1 in filter(lambda xy: xy[1] < block_start_y or xy[1] >= block_start_y + 3,
               puzzle.column_coords(col_num)):
             if puzzle.remove_candidate(x1, y1, num):
-              #print('removed', num, 'from', x1, ',', y1)
               changed_something = True
           
           if changed_something:
@@ -121,7 +129,6 @@ def pointing_pair_block(puzzle):
           for x1, y1 in filter(lambda xy: xy[0] < block_start_x or xy[0] >= block_start_x + 3,
               puzzle.row_coords(row_num)):
             if puzzle.remove_candidate(x1, y1, num):
-              #print('removed', num, 'from', x1, ',', y1)
               changed_something = True
           
           if changed_something:
@@ -140,7 +147,6 @@ def check_pointing_pair_row_column(puzzle, coords, candidates):
       # remove this candidate for all others in this block
       for x, y in filter(lambda xy: xy not in coords_for_num, puzzle.block_coords(*coords_for_num[0])):
         if puzzle.remove_candidate(x, y, num):
-          #print('removed', num, 'from', x, ',', y)
           changed_something = True
     
     if changed_something:
@@ -240,7 +246,6 @@ def check_hidden_subset(puzzle, coords, candidates):
         
         # remove all other candidates from the pure supersets
         for x, y in to_remove_from:
-          print('hidden_subset set', subset, 'at', x, ',', y)
           puzzle.set_candidates(x, y, list(subset))
         
         return True
@@ -275,6 +280,74 @@ def hidden_subset(puzzle):
   
   return False
 
+def find_swordfish_loop(graph, current, path=[]):
+  # is there a loop that isn't formed by simple backtracking? find recursively
+  if current in path:
+    return path[path.index(current):]
+  
+  neighbours = graph[current]
+  if path:
+    neighbours = neighbours.copy() - {path[-1]}
+    use_row = path[-1][0] == current[0]
+  else:
+    use_row = False # not used
+  
+  path = [*path, current]
+  
+  for neighbour in neighbours:
+    if path and ((neighbour[0] == current[0]) if use_row else (neighbour[1] == current[1])):
+      continue
+    
+    result = find_swordfish_loop(graph, neighbour, path)
+    if result:
+      return result
+  
+  return False # if no neighbours
+
+def handle_swordfish_loop(puzzle, loop, num):
+  # clear num out of all in the same rows/columns as those in loop
+  cols_to_clear = set(cell[0] for cell in loop)
+  rows_to_clear = set(cell[1] for cell in loop)
+  
+  changed_something = False
+  
+  for col in cols_to_clear:
+    for x, y in filter(lambda xy: xy not in loop, puzzle.column_coords(col)):
+      if puzzle.remove_candidate(x, y, num):
+        changed_something = True
+  
+  for row in rows_to_clear:
+    for x, y in filter(lambda xy: xy not in loop, puzzle.row_coords(row)):
+      if puzzle.remove_candidate(x, y, num):
+        changed_something = True
+  
+  return changed_something
+
+def swordfish(puzzle):
+  for num in range(1, 10):
+    # find all with this candidate
+    candidate_coords = [(x, y) for x, y in Puzzle.ALL_COORDS if num in puzzle.candidates(x, y)]
+    
+    # build a graph of which are in the same row/column as which
+    graph = {}
+    for coord in candidate_coords:
+      graph[coord] = set()
+      for coord2 in candidate_coords:
+        if (coord[0] == coord2[0]) != (coord[1] == coord2[1]): # != used for xor, used to exclude coord == coord2
+          graph[coord].add(coord2)
+    
+    # find loops
+    for current in candidate_coords:
+      loop = find_swordfish_loop(graph, current)
+      if not loop:
+        continue
+      
+      # handle them
+      if handle_swordfish_loop(puzzle, loop, num):
+        return True
+  
+  return False
+
 class Puzzle:
   
   # All strategies are functions that take this Puzzle, modify it, and return True for success (placed numbers/removed
@@ -286,6 +359,7 @@ class Puzzle:
     pointing_pair_row_column,
     naked_subset,
     hidden_subset,
+    swordfish,
   ]
   
   ALL_COORDS = [(x, y) for x in range(9) for y in range(9)]
@@ -311,20 +385,11 @@ class Puzzle:
   def block_coords(self, x, y):
     return [(dx, dy) for dx in range(x-x%3, x-x%3+3) for dy in range(y-y%3, y-y%3+3)]
   
-  def block_numbers(self, x, y):
-    return [x for y in self.numbers_grid[y-y%3:y-y%3+3][x-x%3:x-x%3+3] for x in y]
-  
   def column_coords(self, x):
     return [(x, y) for y in range(9)]
   
-  def column_numbers(self, x):
-    return [row[x] for row in self.numbers_grid]
-  
   def row_coords(self, y):
     return [(x, y) for x in range(9)]
-  
-  def row_numbers(self, y):
-    return self.numbers_grid[y]
   
   def all_affecting_coords(self, x, y):
     return list(set(self.block_coords(x, y) + self.column_coords(x) + self.row_coords(y)) - {(x, y)})
@@ -362,10 +427,9 @@ class Puzzle:
         raise ValueError('Could not solve puzzle, dump:\n' + str(self))
   
   def try_solve(self):
-    for i, strategy in enumerate(Puzzle.STRATEGIES):
+    for strategy in Puzzle.STRATEGIES:
       if strategy(self):
         # the strategy succeeded in doing something - loop back in solve()
-        print('strategy {} succeeded'.format(i))
         return True
     return False
   
@@ -392,16 +456,12 @@ def main():
   
   total = 0
   
-  for i, lines in enumerate(sudoku_lines):
+  for lines in sudoku_lines:
     puzzle = Puzzle(lines)
     puzzle.solve()
     
-    print('Solved puzzle {}:\n{}'.format(i+1, puzzle.numbers_str()))
-    
     top_left_number = 100*puzzle.number(0, 0) + 10*puzzle.number(1, 0) + puzzle.number(2, 0)
     total += top_left_number
-    
-    print('New total: {}'.format(total))
   
   print(total)
 
