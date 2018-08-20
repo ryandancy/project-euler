@@ -51,7 +51,6 @@ def check_for_unique_candidates(puzzle, all_coords, all_candidates):
     
     if found_one:
       puzzle.set_number(fx, fy, num)
-      print('unique candidate at', fx, ',', fy, 'setting to', num, '; coords:', all_coords)
       return True
   
   return False
@@ -100,12 +99,9 @@ def block_column_row_interaction(puzzle):
           # remove this candidate for all others in this column
           col_num = coords_for_num[0][0]
           
-          print('found pointing pair column:', coords_for_num)
-          
-          for x1, y1 in filter(lambda xy: xy[0] < block_start_x or xy[0] >= block_start_x + 3,
+          for x1, y1 in filter(lambda xy: xy[1] < block_start_y or xy[1] >= block_start_y + 3,
               puzzle.column_coords(col_num)):
             if puzzle.remove_candidate(x1, y1, num):
-              print('removed', num, 'from', x1, ',', y1, 'caused by', coords_for_num)
               changed_something = True
           
           if changed_something:
@@ -116,12 +112,9 @@ def block_column_row_interaction(puzzle):
           # remove this candidate for all others in this row
           row_num = coords_for_num[0][1]
           
-          print('found pointing pair row:', coords_for_num)
-          
-          for x1, y1 in filter(lambda xy: xy[1] < block_start_y or xy[1] >= block_start_y + 3,
+          for x1, y1 in filter(lambda xy: xy[0] < block_start_x or xy[0] >= block_start_x + 3,
               puzzle.row_coords(row_num)):
             if puzzle.remove_candidate(x1, y1, num):
-              print('removed', num, 'from', x1, ',', y1, 'caused by', coords_for_num)
               changed_something = True
           
           if changed_something:
