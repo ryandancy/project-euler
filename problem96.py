@@ -21,7 +21,12 @@ By solving all fifty puzzles find the sum of the 3-digit numbers found in the to
 example, 483 is the 3-digit number found in the top left corner of the solution grid above.
 """
 
+# There are wayyyy too many DRY violations in the strategies but whatever, it works
+
 from itertools import combinations
+
+def block_start(n):
+  return n - n%3
 
 # STRATEGIES
 
@@ -83,7 +88,7 @@ def unique_candidate(puzzle):
   
   return False
 
-def block_column_row_interaction(puzzle):
+def pointing_pair_block(puzzle):
   for block_start_x in range(0, 7, 3):
     for block_start_y in range(0, 7, 3):
       coords = puzzle.block_coords(block_start_x, block_start_y)
@@ -102,6 +107,7 @@ def block_column_row_interaction(puzzle):
           for x1, y1 in filter(lambda xy: xy[1] < block_start_y or xy[1] >= block_start_y + 3,
               puzzle.column_coords(col_num)):
             if puzzle.remove_candidate(x1, y1, num):
+              #print('removed', num, 'from', x1, ',', y1)
               changed_something = True
           
           if changed_something:
@@ -115,6 +121,7 @@ def block_column_row_interaction(puzzle):
           for x1, y1 in filter(lambda xy: xy[0] < block_start_x or xy[0] >= block_start_x + 3,
               puzzle.row_coords(row_num)):
             if puzzle.remove_candidate(x1, y1, num):
+              #print('removed', num, 'from', x1, ',', y1)
               changed_something = True
           
           if changed_something:
@@ -122,35 +129,54 @@ def block_column_row_interaction(puzzle):
   
   return False
 
-def block_block_interaction(puzzle):
-  # TODO. I don't feel like doing this right now.
+def check_pointing_pair_row_column(puzzle, coords, candidates):
+  for num in range(1, 10):
+    # find the coords with this candidate
+    coords_for_num = [(x, y) for i, (x, y) in enumerate(coords) if num in candidates[i]]
+    changed_something = False
+    
+    # are they all in one block?
+    if len({block_start(x) for x, y in coords_for_num}) == len({block_start(y) for x, y in coords_for_num}) == 1:
+      # remove this candidate for all others in this block
+      for x, y in filter(lambda xy: xy not in coords_for_num, puzzle.block_coords(*coords_for_num[0])):
+        if puzzle.remove_candidate(x, y, num):
+          #print('removed', num, 'from', x, ',', y)
+          changed_something = True
+    
+    if changed_something:
+      return True
+  
+  return False
+
+def pointing_pair_row_column(puzzle):
+  for col_num in range(9):
+    coords = puzzle.column_coords(col_num)
+    candidates = [puzzle.candidates(x, y) for x, y in coords]
+    if check_pointing_pair_row_column(puzzle, coords, candidates):
+      return True
+  
+  for row_num in range(9):
+    coords = puzzle.row_coords(row_num)
+    candidates = [puzzle.candidates(x, y) for x, y in coords]
+    if check_pointing_pair_row_column(puzzle, coords, candidates):
+      return True
+  
   return False
 
 def check_for_naked_subset(puzzle, coords, candidates):
-  # find a subset that's either fully in a candidate or out and 'naked' in exactly its length
+  # find a subset that's 'naked' in a number of cells exactly matching its length
   for cands in candidates:
     if len(cands) > 1 and candidates.count(cands) == len(cands):
-      # is there any case where cands is "partially" in a list of candidates?
-      to_remove = []
-      abort = False
-      
-      for (x, y), cands2 in zip(coords, candidates):
-        if set(cands2) > set(cands):
-          # cands2 is a superset of cands
-          to_remove.append((x, y))
-        elif set(cands2) & set(cands):
-          # cands2 is partially in cands, invalidating this
-          abort = True
-          break
-      
-      if abort:
-        continue
-      
-      # do our duty
       changed_something = False
-      for x, y in to_remove:
-        if puzzle.remove_candidate(x, y):
-          changed_something = True
+      
+      for i, (x, y) in enumerate(coords):
+        if candidates[i] == cands:
+          continue
+        
+        for cand in cands:
+          if puzzle.remove_candidate(x, y, cand):
+            changed_something = True
+      
       if changed_something:
         return True
   
@@ -184,6 +210,71 @@ def naked_subset(puzzle):
   
   return False
 
+def check_hidden_subset(puzzle, coords, candidates):
+  subsets_used = set()
+  for cands in candidates:
+    for subset_length in range(2, len(cands)):
+      for subset in combinations(cands, subset_length):
+        if subset in subsets_used:
+          continue
+        subsets_used.add(subset)
+        
+        # does the subset appear exactly subset_length times? does it ever appear partially?
+        appears_partially = False
+        times_appears = 0
+        to_remove_from = []
+        
+        for i, cands2 in enumerate(candidates):
+          intersection = set(cands2) & set(subset)
+          if intersection == set(subset):
+            # it's a subset
+            times_appears += 1
+            to_remove_from.append(coords[i])
+          elif intersection:
+            # it appears partially - bad
+            appears_partially = True
+            break
+        
+        if appears_partially or times_appears != subset_length:
+          continue
+        
+        # remove all other candidates from the pure supersets
+        for x, y in to_remove_from:
+          print('hidden_subset set', subset, 'at', x, ',', y)
+          puzzle.set_candidates(x, y, list(subset))
+        
+        return True
+  
+  return False
+
+def hidden_subset(puzzle):
+  # blocks
+  for block_start_x in range(0, 7, 3):
+    for block_start_y in range(0, 7, 3):
+      coords = puzzle.block_coords(block_start_x, block_start_y)
+      candidates = [puzzle.candidates(x, y) for x, y in coords]
+      
+      if check_hidden_subset(puzzle, coords, candidates):
+        return True
+  
+  # columns
+  for col in range(9):
+    coords = puzzle.column_coords(col)
+    candidates = [puzzle.candidates(x, y) for x, y in coords]
+    
+    if check_hidden_subset(puzzle, coords, candidates):
+      return True
+  
+  # rows
+  for row in range(9):
+    coords = puzzle.row_coords(row)
+    candidates = [puzzle.candidates(x, y) for x, y in coords]
+    
+    if check_hidden_subset(puzzle, coords, candidates):
+      return True
+  
+  return False
+
 class Puzzle:
   
   # All strategies are functions that take this Puzzle, modify it, and return True for success (placed numbers/removed
@@ -191,9 +282,10 @@ class Puzzle:
   STRATEGIES = [
     sole_candidate,
     unique_candidate,
-    block_column_row_interaction,
-    block_block_interaction,
+    pointing_pair_block,
+    pointing_pair_row_column,
     naked_subset,
+    hidden_subset,
   ]
   
   ALL_COORDS = [(x, y) for x in range(9) for y in range(9)]
@@ -252,6 +344,11 @@ class Puzzle:
       self.candidates_grid[y][x].remove(candidate)
       return True
     return False
+  
+  def set_candidates(self, x, y, candidates):
+    if not self.is_empty(x, y):
+      raise ValueError('Attempted to set candidates of a filled-in number!')
+    self.candidates_grid[y][x] = candidates
   
   def is_empty(self, x, y):
     return self.numbers_grid[y][x] == 0
