@@ -25,7 +25,6 @@ What is the sum of all the minimal product-sum numbers for 2≤k≤12000?
 """
 
 import sys
-sys.setrecursionlimit(12500)
 
 def product(seq):
   result = 1
@@ -33,43 +32,49 @@ def product(seq):
     result *= x
   return result
 
-def minimal_product_sum(k, add=[]):
-  if not add:
-    print(k)
-  
-  if k == 1:
-    s = [*add, 2]
-    while sum(s) > product(s):
-      s[-1] += 1
-    return s
-  
-  if k == 2:
-    last = max(add[-1], 2) if add else 2
-  else:
-    last = add[-1] if add else 1
-  
-  s = [*add, last]
-  minimal = 10**10
-  minimal_s = None
-  lastn = 10**10
+def minimal_product_sum_partial(k, non_1, min_found):
+  numbers = [1] * (k - non_1) + [2] * non_1
+  last_idx_incremented = k - non_1
+  first_overall = True
   
   while True:
-    new = minimal_product_sum(k - 1, s)
-    if new is None:
-      break
+    sum_ = sum(numbers)
+    prod = product(numbers)
     
-    n = sum(new)
+    while prod < sum_ and (min_found is None or (sum_ < min_found and prod < min_found)):
+      #print(k, non_1, numbers, min_found, prod, sum_)
+      numbers[-1] += 1
+      first_overall = False
+      last_idx_incremented = k - 1
+      
+      sum_ = sum(numbers)
+      prod = product(numbers)
     
-    if n == product(new) and n < minimal:
-      minimal = n
-      minimal_s = new
+    if sum_ == prod and (min_found is None or sum_ < min_found):
+      min_found = sum_
+    elif first_overall:
+      raise StopIteration
     
-    if n > lastn:
-      break
-    lastn = n
+    to_reset_to = last_idx_incremented - 1
+    if to_reset_to < k - non_1:
+      return min_found
     
-    s[-1] += 1
-  
-  return minimal_s
+    numbers[to_reset_to] += 1
+    for i in range(to_reset_to + 1, k):
+      numbers[i] = numbers[to_reset_to]
+    last_idx_incremented = to_reset_to
 
-print(sum(set(map(sum, map(minimal_product_sum, range(2, 12001))))))
+def minimal_product_sum(k):
+  if k % 10 == 0:
+    sys.stdout.write('\rFound up to {} ({:.2f}%)'.format(k, k / 120))
+  min_found = None
+  try:
+    for non_1 in range(2, k + 1):
+      min_found = minimal_product_sum_partial(k, non_1, min_found)
+  except StopIteration:
+    pass
+  return min_found
+
+result = sum(set(map(minimal_product_sum, range(2, 12001))))
+print()
+print(result)
