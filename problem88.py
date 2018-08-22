@@ -24,7 +24,14 @@ In fact, as the complete set of minimal product-sum numbers for 2≤k≤12 is {4
 What is the sum of all the minimal product-sum numbers for 2≤k≤12000?
 """
 
-import sys
+# Our algorithm is as follows:
+# For each k from 2 to 12000, we compute the minimum product-sum number using 2 to k non-1 numbers in the list.
+# For each number of non-1 numbers, we start with all 2s, increment the last number until their product >= their sum.
+# When this occurs, we check if product == sum. We then increment the number before the most recently incremented
+# number; if this would result in incrementing the -1st number, we exit. This process repeats until we increment the
+# 0th number and find that it is too large. When incrementing a number, we also set each number after that to the
+# incremented number.
+# This solution runs in ~10 minutes.
 
 def product(seq):
   result = 1
@@ -33,21 +40,21 @@ def product(seq):
   return result
 
 def minimal_product_sum_partial(k, non_1, min_found):
-  numbers = [1] * (k - non_1) + [2] * non_1
-  last_idx_incremented = k - non_1
+  ones = k - non_1
+  numbers = [2] * non_1
+  last_idx_incremented = 0
   first_overall = True
   
   while True:
-    sum_ = sum(numbers)
+    sum_ = sum(numbers) + ones
     prod = product(numbers)
     
     while prod < sum_ and (min_found is None or (sum_ < min_found and prod < min_found)):
-      #print(k, non_1, numbers, min_found, prod, sum_)
       numbers[-1] += 1
       first_overall = False
-      last_idx_incremented = k - 1
+      last_idx_incremented = non_1 - 1
       
-      sum_ = sum(numbers)
+      sum_ = sum(numbers) + ones
       prod = product(numbers)
     
     if sum_ == prod and (min_found is None or sum_ < min_found):
@@ -56,17 +63,15 @@ def minimal_product_sum_partial(k, non_1, min_found):
       raise StopIteration
     
     to_reset_to = last_idx_incremented - 1
-    if to_reset_to < k - non_1:
+    if to_reset_to < 0:
       return min_found
     
     numbers[to_reset_to] += 1
-    for i in range(to_reset_to + 1, k):
+    for i in range(to_reset_to + 1, non_1):
       numbers[i] = numbers[to_reset_to]
     last_idx_incremented = to_reset_to
 
 def minimal_product_sum(k):
-  if k % 10 == 0:
-    sys.stdout.write('\rFound up to {} ({:.2f}%)'.format(k, k / 120))
   min_found = None
   try:
     for non_1 in range(2, k + 1):
@@ -75,6 +80,4 @@ def minimal_product_sum(k):
     pass
   return min_found
 
-result = sum(set(map(minimal_product_sum, range(2, 12001))))
-print()
-print(result)
+print(sum(set(map(minimal_product_sum, range(2, 12001)))))
