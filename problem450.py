@@ -35,11 +35,26 @@ T(3) = 10; T(10) = 524; T(100) = 580442; T(10^3) = 583108600.
 Find T(10^6).
 """
 
-from math import pi, cos, acos, sin, ceil
-from fractions import Fraction
+from math import pi, cos, acos, sin, ceil, gcd
+from itertools import count
 
 def is_integer(x):
-  return abs(round(x) - x) < 0.0001
+  return abs(round(x) - x) < 0.000001
+
+def pimuls(R, r):
+  n = r // gcd(R, r)
+  
+  if n == 1:
+    return [0]
+  elif n == 2:
+    return [-2, 0]
+  
+  if (n - 1) % 4 == 0:
+    n0 = (-3*n - 1) // 2
+    return [n0, -n - 1, 0, -n0]
+  else:
+    n1 = -2*ceil(n/4)
+    return [-n - (n % 2), n1, 0, -n1]
 
 def S(R, r):
   # x(t) = acos(t) + rcos(kt), y(t) = asin(t) - rsin(kt)
@@ -58,17 +73,24 @@ def S(R, r):
     -7*a/25, 7*a/25,
     -28*a/53, 28*a/53, # last might not be necessary
     -45*a/53, 45*a/53,
+    -5*a/13, 5*a/13,
+    -12*a/13, 12*a/13,
+    -8*a/17, 8*a/17,
+    -15*a/17, 15*a/17,
   ]
   
   lattice = set()
   
-  for x1 in x1_to_check:#range(-a, a + 1):
+  pimuls_ = pimuls(R, r)
+  
+  for x1 in x1_to_check: #range(-a, a + 1):
     if not is_integer(x1):
       continue
     
     acos_ = acos(x1/a)
-    for pimul in range(0, 100, 2):
-      for t in {acos_ - pimul*pi, pimul*pi - acos_}:
+    
+    for pimul in pimuls_:
+      for t in (acos_, -acos_) if pimul == 0 else (acos_ + pimul*pi if pimul < 0 else pimul*pi - acos_,):
         x2 = r*cos(k*t)
         if not is_integer(x2):
           continue
@@ -84,9 +106,6 @@ def S(R, r):
         x = round(x1 + x2)
         y = round(y1 - y2)
         
-        if x1 not in x1_to_check:
-          print('{} not in ({}, {})!! ({}, {})'.format(x1, R, r, x, y))
-        
         lattice.add((x, y))
   
   return sum(abs(a) for xy in lattice for a in xy)
@@ -96,11 +115,10 @@ def T(N):
   for R in range(3, N+1):
     for r in range(1, ceil(R/2)):
       total += S(R, r)
-      #print(R, r, total)
+    print(R, total)
   return total
 
-# This overshoots by 240. How??
-print(T(100))
+print(T(1000))
 
 # for numer in range(3, 11):
 #   for denom in range(1, ceil(numer/2)):
