@@ -35,11 +35,15 @@ T(3) = 10; T(10) = 524; T(100) = 580442; T(10^3) = 583108600.
 Find T(10^6).
 """
 
+import sys
 from math import pi, cos, acos, sin, ceil, gcd
 from itertools import count
 
 def is_integer(x):
-  return abs(round(x) - x) < 0.000001
+  return abs(round(x) - x) < 0.00000001
+
+def is_half(x):
+  return is_integer(x + 0.5)
 
 def pimuls(R, r):
   n = r // gcd(R, r)
@@ -47,7 +51,10 @@ def pimuls(R, r):
   if n == 1:
     return [0]
   elif n == 2:
-    return [-2, 0]
+    if R % 625 == 0 and r % 250 == 0:
+      return [-2, 0, 2]
+    else:
+      return [-2, 0, 2]
   
   if (n - 1) % 4 == 0:
     n0 = (-3*n - 1) // 2
@@ -81,10 +88,11 @@ def S(R, r):
   
   lattice = set()
   
-  pimuls_ = pimuls(R, r)
+  pimuls_ = pimuls(R, r)#[b for c in range(0, 2*r+1, 2) for b in ([c] if c == 0 else [-c, c])]
   
-  for x1 in x1_to_check: #range(-a, a + 1):
-    if not is_integer(x1):
+  for x1 in x1_to_check:#[b for c in range(-a, a + 1) for b in ([c] if c == a else [c, c + 0.5])]:
+    x1half = is_half(x1)
+    if not (x1half or is_integer(x1)):
       continue
     
     acos_ = acos(x1/a)
@@ -92,19 +100,23 @@ def S(R, r):
     for pimul in pimuls_:
       for t in (acos_, -acos_) if pimul == 0 else (acos_ + pimul*pi if pimul < 0 else pimul*pi - acos_,):
         x2 = r*cos(k*t)
-        if not is_integer(x2):
+        if not (is_half(x2) if x1half else is_integer(x2)):
           continue
         
         y1 = a*sin(t)
-        if not is_integer(y1):
+        y1half = is_half(y1)
+        if not (y1half or is_integer(y1)):
           continue
         
         y2 = r*sin(k*t)
-        if not is_integer(y2):
+        if not (is_half(y2) if y1half else is_integer(y2)):
           continue
         
         x = round(x1 + x2)
         y = round(y1 - y2)
+        
+        if x1 not in x1_to_check:
+          print('{} not in x1_to_check!!! ({}, {}, xhalf={}, yhalf={})'.format(x1, R, r, x1half, y1half))
         
         lattice.add((x, y))
   
@@ -113,9 +125,13 @@ def S(R, r):
 def T(N):
   total = 0
   for R in range(3, N+1):
+    r_total = 0
     for r in range(1, ceil(R/2)):
-      total += S(R, r)
-    print(R, total)
+      this_s = S(R, r)
+      total += this_s
+      r_total += this_s
+    print(R, total, r_total)
+    sys.stdout.flush()
   return total
 
 print(T(1000))
