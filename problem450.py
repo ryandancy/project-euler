@@ -41,13 +41,14 @@ from itertools import count
 import numpy as np
 from time import clock
 
+# Returns list of (pimul, x1, y = 0?)
 def pimuls_and_x1(R, r, a, pythag_triples, max_powers):
   n = r // gcd(R, r) if R % r else 1
   
   nmod2 = n % 2
+  n_divisible_2 = nmod2 == 0
+  npnmod2 = n + nmod2
   nm1_divisible_4 = (n - 1) % 4 == 0
-  
-  n0 = 0
   
   if n == 1:
     n1 = 0
@@ -60,16 +61,16 @@ def pimuls_and_x1(R, r, a, pythag_triples, max_powers):
     n2 = (3*n + 1) // 2
   else:
     n1 = 2*ceil(n/4)
-    n2 = n + nmod2
+    n2 = npnmod2
   
   if n % 4 == 0:
-    result = [(n0, a), (n1, a), (n2, a)]
-  elif nmod2 == 0:
-    result = [(n0, a), (n1, -a), (n2, a)]
+    result = [(0, a, True), (n1, a, False), (n2, a, True)]
+  elif n_divisible_2:
+    result = [(0, a, True), (n1, -a, False), (n2, a, True)]
   elif nm1_divisible_4:
-    result = [(n0, a), (n1, -a), (n2, 0)]
+    result = [(0, a, True), (n1, -a, True), (n2, 0, False)]
   else:
-    result = [(n0, a), (n1, 0), (n2, -a)]
+    result = [(0, a, True), (n1, 0, False), (n2, -a, True)]
   
   if n == 1:
     k = R // r - 1
@@ -82,11 +83,10 @@ def pimuls_and_x1(R, r, a, pythag_triples, max_powers):
         break
       elif a % factor == 0:
         r1, r2 = pa*a//pc, pb*a//pc
-        result = [*result, (0, r1), (0, -r1), (0, r2), (0, -r2)]
-  elif n == 2 and R / r == 2.5 and a % 375 == 0:
-    # experiment: can "R / r == 2.5" be removed?
+        result = [*result, (0, r1, False), (0, -r1, False), (0, r2, False), (0, -r2, False)]
+  elif 5*r == 2*R and a % 375 == 0:
     r1 = 7*a/25
-    result = [*result, (0, r1), (2, r1), (0, -r1), (2, -r1)]
+    result = [*result, (0, r1, False), (2, r1, False), (0, -r1, False), (2, -r1, False)]
   
   return result
 
@@ -126,22 +126,23 @@ def S(R, r, pythag_triples, max_powers):
   
   total = 0
   
-  for pimul, x1 in pimuls_and_x1(R, r, a, pythag_triples, max_powers):
+  for pimul, x1, y_equals_0 in pimuls_and_x1(R, r, a, pythag_triples, max_powers):
     acos_ = acos(x1/a)
     
     t = pimul*pi - acos_
     kt = k*t
     
     x2 = r*cos(kt)
-    y1 = a*sin(t)    
-    y2 = r*sin(kt)
     
     x = round(x1 + x2)
-    y = round(y1 - y2)
     
-    if y == 0:
+    if y_equals_0:
       total += abs(x)
     else:
+      y1 = a*sin(t)
+      y2 = r*sin(kt)
+      
+      y = round(y1 - y2)
       total += 2*abs(x) + 2*abs(y)
   
   return total
@@ -153,7 +154,7 @@ def T(N):
   max_powers = highest_powers(pythag_triples, N)
   
   timestamp = clock()
-  timestamps = [timestamp]
+  timestamp_sums = [timestamp]
   
   total = 0
   for R in range(3, N+1):
@@ -166,9 +167,9 @@ def T(N):
     
     if R % 100 == 0:
       new_timestamp = clock()
-      timestamps.append(new_timestamp)
+      timestamp_sums.append(timestamp_sums[-1] + new_timestamp)
       
-      coeffs = np.polyfit(timestamps, list(range(0, R+1, 100)), 1)
+      coeffs = np.polyfit(timestamp_sums, list(range(0, R+1, 100)), 1)
       projected = np.polyval(coeffs, N)
       projh, projmins = divmod(projected, 3600)
       projm, projs = divmod(projmins, 60)
