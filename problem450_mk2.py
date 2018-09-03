@@ -1,8 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# THIS SHOULD WORK
+
+from math import acos, cos, sin, pi, sqrt
 from sympy.ntheory import factorint
-print('Sympy loaded')
+import numpy as np
+print('Sympy and Numpy loaded')
 
 def phi(R, factors):
   prod = R
@@ -19,114 +23,65 @@ def psi(factors):
 def triangle(n):
   return n*(n+1)//2
 
-# Complete for up to N=10^6
-special_lookup = {
-  (5, 2): 560,
-  (5, 3): 2912,
-  (5, 4): 28000,
-  (5, 5): 175000,
-  (5, 6): 1050000,
-  (5, 7): 6607552,
-  (13, 2): 3536,
-  (13, 3): 59296,
-  (13, 4): 1195168,
-  (17, 2): 6256,
-  (17, 3): 124384,
-  (17, 4): 3615968,
-  (25, 2): 13108,
-  (25, 3): 453344,
-  (29, 2): 19024,
-  (29, 3): 552352,
-  (37, 2): 28596,
-  (37, 3): 1427296,
-  (41, 2): 35268,
-  (41, 3): 2071328,
-  (53, 2): 61904,
-  (53, 3): 3618464,
-  (61, 2): 77844,
-  (61, 3): 6954592,
-  (65, 2): 364292,
-  (65, 3): 28711936,
-  (73, 2): 120304,
-  (85, 2): 622548,
-  (89, 2): 169456,
-  (97, 2): 212624,
-  (101, 2): 213748,
-  (109, 2): 263344,
-  (113, 2): 265332,
-  (125, 2): 1002712,
-  (137, 2): 423056,
-  (145, 2): 1821240,
-  (149, 2): 462548,
-  (157, 2): 545104,
-  (169, 2): 646256,
-  (173, 2): 626772,
-  (181, 2): 676948,
-  (185, 2): 2958488,
-  (193, 2): 812144,
-  (197, 2): 807732,
-  (205, 2): 3659860,
-  (221, 2): 4185748,
-  (229, 2): 1100628,
-  (233, 2): 1166864,
-  (241, 2): 1268624,
-  (257, 2): 1370356,
-  (265, 2): 6023400,
-  (269, 2): 1518884,
-  (277, 2): 1626544,
-  (281, 2): 1757936,
-  (289, 2): 1854224,
-  (293, 2): 1801876,
-  (305, 2): 8129060,
-  (313, 2): 2011972,
-  (317, 2): 2109332,
-  (325, 2): 15884284,
-  (337, 2): 2496496,
-  (349, 2): 2674736,
-  (353, 2): 2807056,
-  (365, 2): 11517000,
-  (373, 2): 3145136,
-  (377, 2): 12139876,
-  (389, 2): 3292496,
-  (397, 2): 3512656,
-  (401, 2): 3318708,
-  (409, 2): 3505268,
-  (421, 2): 3629028,
-  (425, 2): 27225260,
-  (433, 2): 3910660,
-  (445, 2): 17083172,
-  (449, 2): 4533104,
-  (457, 2): 4336016,
-  (461, 2): 4728016,
-  (481, 2): 19630216,
-  (485, 2): 20355160,
-  (493, 2): 20942344,
-  (505, 2): 22255140,
-  (509, 2): 5529776,
-  (521, 2): 5993584,
-  (533, 2): 24178744,
-  (541, 2): 6587216,
-  (545, 2): 25496760,
-  (557, 2): 6499620,
-  (565, 2): 27958660,
-  (569, 2): 6837104,
-  (577, 2): 6843252,
-  (593, 2): 7903504,
-  (601, 2): 7606256,
-  (613, 2): 7667412,
-  (617, 2): 7955012,
-  (625, 2): 25505300,
-  (629, 2): 34031112,
-  (641, 2): 8595028,
-  (653, 2): 9267376,
-  (661, 2): 9402064,
-  (673, 2): 10089616,
-  (677, 2): 9404916,
-  (685, 2): 40499800,
-  (689, 2): 40896932,
-  (697, 2): 41866344,
-  (701, 2): 10217776,
-}
+A = np.mat('1 -2 2; 2 -1 2; 2 -2 3')
+B = np.mat('1 2 2; 2 1 2; 2 2 3')
+C = np.mat('-1 2 2; -2 1 2; -2 2 3')
+
+def pythagorean_triples_up_to(limit): # all Pythagorean triples with 2c^2 < limit, lone squares with 5sqrt(c)^3 < limit
+  stack = [np.mat('3; 4; 5')]
+  triples = []
+  lone_squares = []
+  squares_searching_for = set()
+  
+  while stack:
+    current = stack.pop(0)
+    
+    c = int(current[-1])
+    if c in squares_searching_for:
+      lone_squares.append(sorted(tuple(map(int, np.squeeze(np.asarray(current))))))
+      squares_searching_for.remove(c)
+    
+    ltlimit = 2*c**2 < limit
+    
+    #print(squares_searching_for)
+    
+    if ltlimit:
+      triples.append(tuple(map(int, np.squeeze(np.asarray(current)))))
+      if 5*c**3 < limit:
+        squares_searching_for.add(c**2)
+    
+    if ltlimit or squares_searching_for:
+      children = [A*current, B*current, C*current]
+      for child in children:
+        if ((squares_searching_for and any(int(child[-1]) <= c for c in squares_searching_for))
+              or 2*int(child[-1])**2 < limit):
+          stack.append(child)
+  
+  return triples, lone_squares
+
+def eval_special(R, r, x1s_and_pimuls): # pimul always 0
+  a = R - r
+  k = a / r
+  
+  total = 0
+  
+  for x1, pimul in x1s_and_pimuls:
+    acos_ = acos(x1/a)
+    t = pimul*pi - acos_
+    kt = k*t
+    
+    x2 = r*cos(kt)
+    y1 = a*sin(t)
+    y2 = r*sin(kt)
+    
+    x = round(x1) + round(x2)
+    y = round(y1) - round(y2)
+    
+    #print(R, r, x1, x, y)
+    
+    total += 2*abs(x) + 2*abs(y)
+  
+  return total
 
 def T(N):
   base = 0
@@ -154,38 +109,118 @@ def T(N):
     
     base += triangle(n) * t
   
+  print('Base found')
+  
   special = 0
-  for (c, degree), add in special_lookup.items():
-    min_R = (degree+1)*c**degree
+  
+  triples, lone_squares = pythagorean_triples_up_to(N)
+  
+  for (pa, pb, pc) in triples:
+    degree = 2
+    
+    base_r = pc**degree
+    base_R = (degree+1)*base_r
+    
+    while base_R <= N:
+      mul = 1
+      
+      this = 0
+      
+      while True:
+        R = base_R*mul
+        r = base_r*mul
+        a = R - r
+        
+        if R > N:
+          break
+        
+        x1s_and_pimuls = [(pa*a//pc, 0), (-pa*a//pc, 0), (pb*a//pc, 0), (-pb*a//pc, 0)]
+        special += eval_special(R, r, x1s_and_pimuls)
+        this += eval_special(R, r, x1s_and_pimuls)
+        
+        #print(R, r, this)
+        mul += 1
+      
+      #print((pa, pb, pc), degree, this)
+      
+      degree += 1
+      base_r = pc**degree
+      base_R = (degree+1)*base_r
+  
+  # lone squares
+  for pa, pb, pc in lone_squares:
+    sqrtc = sqrt(pc)
+    cube = sqrtc**3
+    base_r = r = 2*cube
+    base_R = R = 5*cube
+    
+    this = 0
     
     mul = 1
-    R = min_R
-    
-    #this_total = 0
-    
     while R <= N:
-      special += mul*add
-    #  this_total += mul*add
-    #  print('Applied c={}, degree={} at R={}'.format(c, degree, R))
+      a = R - r
+      pos = pa*a//pc
+      
+      # this works but in a roundabout fashion
+      x1s_and_pimuls = [(pos, 0), (pos, 1), (pos, 2), (pos, 3)]
+      special += eval_special(R, r, x1s_and_pimuls)
+      this += eval_special(R, r, x1s_and_pimuls)
+      
+      #print(R, r, this)
+      
       mul += 1
-      R = mul*min_R
+      R = base_R*mul
+      r = base_r*mul
     
-    #if this_total:
-    #  print('c={}, degree={}: {}'.format(c, degree, this_total))
+    #print('lone square:', (pa, pb, pc), this)
   
-  # lone 7/25
-  min_R = 625
-  add = 4236
+  # base_R = R = 625
+  # base_r = r = 250
+  # mul = 1
+  # this = 0
+  # while R <= N:
+  #   a = R - r
+  #   x1s_and_pimuls = [(7*a//25, 0), (7*a//25, 2), (-7*a//25, 0), (-7*a//25, 2)]
+  #   special += eval_special(R, r, x1s_and_pimuls)
+  #   this += eval_special(R, r, x1s_and_pimuls)
+  #   mul += 1
+  #   R = base_R*mul
+  #   r = base_r*mul
+  # print('lone 7/25', this)
   
-  #this_total = 0
+  print('Specials evaluated')
   
-  mul = 1
-  R = min_R
-  while R <= N:
-    special += mul*add
-    #this_total += mul*add
-    mul += 1
-    R = mul*min_R
+  # for (c, degree), add in special_lookup.items():
+  #   min_R = (degree+1)*c**degree
+    
+  #   mul = 1
+  #   R = min_R
+    
+  #   #this_total = 0
+    
+  #   while R <= N:
+  #     special += mul*add
+  #   #  this_total += mul*add
+  #   #  print('Applied c={}, degree={} at R={}'.format(c, degree, R))
+  #     mul += 1
+  #     R = mul*min_R
+    
+  #   #if this_total:
+  #   #  print('c={}, degree={}: {}'.format(c, degree, this_total))
+  
+  # # lone 7/25
+  # min_R = 625
+  # add = 4236
+  
+  # #this_total = 0
+  
+  # mul = 1
+  # R = min_R
+  # while R <= N:
+  #   special += mul*add
+  #   #this_total += mul*add
+  #   mul += 1
+  #   R = mul*min_R
   
   #print('Lone 7/25:', this_total)
   
