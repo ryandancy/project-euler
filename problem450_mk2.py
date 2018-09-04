@@ -1,6 +1,40 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Project Euler Problem 450:
+
+A hypocycloid is the curve drawn by a point on a small circle rolling inside a larger circle. The parametric equations
+of a hypocycloid centered at the origin, and starting at the right most point is given by:
+
+x(t) = (R−r)cos(t)+rcos(t(R−r)/r)
+y(t) = (R−r)sin(t)−rsin(t(R−r)/r)
+
+Where R is the radius of the large circle and r the radius of the small circle.
+
+Let C(R,r) be the set of distinct points with integer coordinates on the hypocycloid with radius R and r and for which
+there is a corresponding value of t such that sin(t) and cos(t) are rational numbers.
+
+Let S(R,r)=∑_{(x,y)∈C(R,r)} |x|+|y| be the sum of the absolute values of the x and y coordinates of the points in
+C(R,r).
+
+Let T(N)=∑^N_{R=3} ∑^{⌊(R−1)/2⌋}_{r=1} S(R,r) be the sum of S(R,r) for R and r positive integers, R≤N and 2r<R.
+
+You are given:
+C(3, 1) = {(3, 0), (-1, 2), (-1,0), (-1,-2)}
+C(2500, 1000) = {(2500, 0), (772, 2376), (772, -2376), (516, 1792), (516, -1792), (500, 0), (68, 504), (68, -504),
+                 (-1356, 1088), (-1356, -1088), (-1500, 1000), (-1500, -1000)}
+
+Note: (-625, 0) is not an element of C(2500, 1000) because sin(t) is not a rational number for the corresponding values
+of t.
+
+S(3, 1) = (|3| + |0|) + (|-1| + |2|) + (|-1| + |0|) + (|-1| + |-2|) = 10
+
+T(3) = 10; T(10) = 524; T(100) = 580442; T(10^3) = 583108600.
+
+Find T(10^6).
+"""
+
 # THIS SHOULD WORK
 
 from math import acos, cos, sin, pi, sqrt
@@ -27,7 +61,7 @@ A = np.mat('1 -2 2; 2 -1 2; 2 -2 3')
 B = np.mat('1 2 2; 2 1 2; 2 2 3')
 C = np.mat('-1 2 2; -2 1 2; -2 2 3')
 
-def pythagorean_triples_up_to(limit): # all Pythagorean triples with 2c^2 < limit, lone squares with 5sqrt(c)^3 < limit
+def pythagorean_triples_up_to(limit): # all Pythagorean triples with 2c^2<=limit, lone squares with 5sqrt(c)^3<=limit
   stack = [np.mat('3; 4; 5')]
   triples = []
   lone_squares = []
@@ -41,20 +75,20 @@ def pythagorean_triples_up_to(limit): # all Pythagorean triples with 2c^2 < limi
       lone_squares.append(sorted(tuple(map(int, np.squeeze(np.asarray(current))))))
       squares_searching_for.remove(c)
     
-    ltlimit = 2*c**2 < limit
+    ltlimit = 2*c**2 <= limit
     
     #print(squares_searching_for)
     
     if ltlimit:
       triples.append(tuple(map(int, np.squeeze(np.asarray(current)))))
-      if 5*c**3 < limit:
+      if 5*c**3 <= limit:
         squares_searching_for.add(c**2)
     
     if ltlimit or squares_searching_for:
       children = [A*current, B*current, C*current]
       for child in children:
         if ((squares_searching_for and any(int(child[-1]) <= c for c in squares_searching_for))
-              or 2*int(child[-1])**2 < limit):
+              or 2*int(child[-1])**2 <= limit):
           stack.append(child)
   
   return triples, lone_squares
