@@ -15,41 +15,38 @@ It is possible to make £2 in the following way:
 How many different ways can £2 be made using any number of coins?
 """
 
-# Start from 200p and go backwards, generating each possible combination that adds to 200
+# Dynamic programming: we recurse and calculate the number of ways for each amount and coin combination both using and
+# not using the highest-value coin, memoizing on the total amount and types of coins.
+# This solution finds the correct solution in ~80ms, much better than the 4-hour runtime of the previous iteration
 
-# Takes ~4 hours to run because combinations() is O(2^n)
-# The time it takes to calculate the coins for each successive total grows exponentially
+all_coins = (200, 100, 50, 20, 10, 5, 2, 1)
 
-from collections import Counter
-import sys
-
-coins = [1, 2, 5, 10, 20, 50, 100, 200]
 memoized = {}
 
-def combinations(n=200):
-  # Pretty sure this is O(2^n)
+def ways(amount, coins=all_coins):
+  if (amount, coins) in memoized:
+    return memoized[amount, coins]
+  if amount == 0 or not coins:
+    return 0
   
-  if n in memoized:
-    return memoized[n]
+  # Get the highest-value coin not greater than the amount, clearing too-high-value coins
+  coin = coins[0]
+  while coin > amount:
+    coins = coins[1:]
+    coin = coins[0]
   
-  combos = []
+  result = 0
+  if coin == amount:
+    # The coin on its own is one way
+    result += 1
+  else:
+    # Find ways using the coin
+    result += ways(amount - coin, coins=coins)
   
-  for coin in coins:
-    remainder = n - coin
-    if remainder > 0:
-      r_combos = combinations(remainder)
-      for combo in r_combos:
-        new_combo = combo.copy()
-        new_combo[coin] += 1
-        if new_combo not in combos:
-          combos.append(new_combo)
-    elif remainder == 0:
-      combos.append(Counter({n: 1}))
+  # Find ways not using the coin
+  result += ways(amount, coins=coins[1:])
   
-  sys.stdout.write('\rCompleted up to ' + str(n))
-  sys.stdout.flush()
-  
-  memoized[n] = combos
-  return combos
+  memoized[amount, coins] = result
+  return memoized[amount, coins]
 
-print('\nTotal combinations:', len(combinations()))
+print(ways(200))
