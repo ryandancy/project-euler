@@ -1,185 +1,225 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from math import floor, log2, sqrt, gcd
+from fractions import Fraction
+from itertools import count
+import numpy as np
+
 """
 Project Euler Problem 450:
 
-A hypocycloid is the curve drawn by a point on a small circle rolling inside a larger circle. The parametric equations
-of a hypocycloid centered at the origin, and starting at the right most point is given by:
+A hypocycloid is the curve drawn by a point on a small circle rolling inside a large circle. The
+parametric equations of a hypocycloid centred at the origin and starting at the rightmost point is
+given by:
 
-x(t) = (R−r)cos(t)+rcos(t(R−r)/r)
-y(t) = (R−r)sin(t)−rsin(t(R−r)/r)
+x(t) = (R - r)cos(t) + r cos((R - r)/r t)
+y(t) = (R - r)sin(t) - r sin((R - r)/r t)
 
 Where R is the radius of the large circle and r the radius of the small circle.
 
-Let C(R,r) be the set of distinct points with integer coordinates on the hypocycloid with radius R and r and for which
-there is a corresponding value of t such that sin(t) and cos(t) are rational numbers.
+Let C(R, r) be the set of distinct points with integer coordinates on the hypocycloid with radius
+R and r and for which there is a corresponding value of t such that sin(t) and cos(t) are rational
+numbers.
 
-Let S(R,r)=∑_{(x,y)∈C(R,r)} |x|+|y| be the sum of the absolute values of the x and y coordinates of the points in
-C(R,r).
+Let S(R, r) = sum_{(x, y) in C(R, r)} |x| + |y| be the sum of the absolute values of the x and y
+coordinates of the points in C(R, r).
 
-Let T(N)=∑^N_{R=3} ∑^{⌊(R−1)/2⌋}_{r=1} S(R,r) be the sum of S(R,r) for R and r positive integers, R≤N and 2r<R.
+Let T(N) = sum_{R=3}^N sum_{r=1}^{floor((R-1)/2)} S(R, r) be the sum of S(R, r) for R and r positive
+integers, R <= N and 2r < R.
 
 You are given:
-C(3, 1) = {(3, 0), (-1, 2), (-1,0), (-1,-2)}
-C(2500, 1000) = {(2500, 0), (772, 2376), (772, -2376), (516, 1792), (516, -1792), (500, 0), (68, 504), (68, -504),
-                 (-1356, 1088), (-1356, -1088), (-1500, 1000), (-1500, -1000)}
+C(3, 1) = {(3, 0), (-1, 2), (-1, 0), (-1, -2)}
+C(2500, 1000) = {(2500, 0), (772, 2376), (772, -2376), (516, 1792), (516, -1792), (500, 0), (68, 504),
+  (68, -504), (-1356, 1088), (-1356, -1088), (-1500, 1000), (-1500, -1000)}
 
-Note: (-625, 0) is not an element of C(2500, 1000) because sin(t) is not a rational number for the corresponding values
-of t.
+Note: (-625, 0) is not an element of C(2500, 1000) because sin(t) is not a rational number for the
+corresponding values of t.
 
-S(3, 1) = (|3| + |0|) + (|-1| + |2|) + (|-1| + |0|) + (|-1| + |-2|) = 10
+S(3, 1) = (|3| + |0|) + (|-1| + |2|) + (|-1| + |0|) + (|-1| + |-2|) = 10.
 
 T(3) = 10; T(10) = 524; T(100) = 580442; T(10^3) = 583108600.
 
 Find T(10^6).
 """
 
-import sys
-from math import pi, cos, acos, sin, ceil, gcd
-from itertools import count
-import numpy as np
-from time import clock
+def normals(N): # sum of the normal points (t = npi/2 for integer n); O(log2(N))
+  a = (N-1)//2
+  odd = a * (a + 1) * (7*a + 8)
+  even = 0
+  for k in range(1, floor(log2(N))+1):
+    m = (N+2**k)//(2**(k+1))
+    even += 2**k * m * (m*m*(2**(k+3)-3) - 2**(k+1) - 9*m)
+  return (odd + even) // 3
 
-# Returns list of (pimul, x1, y = 0?)
-def pimuls_and_x1(R, r, a, pythag_triples, max_powers):
-  n = r // gcd(R, r) if R % r else 1
-  
-  nmod2 = n % 2
-  n_divisible_2 = nmod2 == 0
-  npnmod2 = n + nmod2
-  nm1_divisible_4 = (n - 1) % 4 == 0
-  
-  if n == 1:
-    n1 = 0
-    n2 = 0
-  elif n == 2:
-    n1 = 0
-    n2 = 2
-  elif nm1_divisible_4:
-    n1 = n + 1
-    n2 = (3*n + 1) // 2
-  else:
-    n1 = 2*ceil(n/4)
-    n2 = npnmod2
-  
-  if n % 4 == 0:
-    result = [(0, a, True), (n1, a, False), (n2, a, True)]
-  elif n_divisible_2:
-    result = [(0, a, True), (n1, -a, False), (n2, a, True)]
-  elif nm1_divisible_4:
-    result = [(0, a, True), (n1, -a, True), (n2, 0, False)]
-  else:
-    result = [(0, a, True), (n1, 0, False), (n2, -a, True)]
-  
-  if n == 1:
-    k = R // r - 1
-    # can this be made more efficient???
-    for pa, pb, pc in pythag_triples:
-      if k > max_powers[pc]:
-        break
-      factor = k*pc**k
-      if factor > a:
-        break
-      elif a % factor == 0:
-        r1, r2 = pa*a//pc, pb*a//pc
-        result = [*result, (0, r1, False), (0, -r1, False), (0, r2, False), (0, -r2, False)]
-  elif 5*r == 2*R and a % 375 == 0:
-    r1 = 7*a/25
-    result = [*result, (0, r1, False), (2, r1, False), (0, -r1, False), (2, -r1, False)]
-  
-  return result
-
+# Matrices for generating Pythagorean triples
 A = np.mat('1 -2 2; 2 -1 2; 2 -2 3')
 B = np.mat('1 2 2; 2 1 2; 2 2 3')
 C = np.mat('-1 2 2; -2 1 2; -2 2 3')
 
-def pythagorean_triples_up_to(limit): # all Pythagorean triples with 2c^2 < limit
-  stack = [np.mat('3; 4; 5')]
-  triples = []
+def generate_pythagorean_triples(N):
+  # Returns a, b, c where a**2 + b**2 = c**2, b is even and a is odd
+  # Will return if: 3c^2 <= N --> c <= sqrt(N/3)
+  # (i.e. there is at least one R <= N including the triple as a special)
+  # Generates triples via https://en.wikipedia.org/wiki/Tree_of_primitive_Pythagorean_triples
   
-  while stack:
-    current = stack.pop(0)
-    triples.append(tuple(map(int, np.squeeze(np.asarray(current)))))
+  c_bound = sqrt(N/3)
+  triples = [np.mat('3; 4; 5')]
+  while triples:
+    triple = triples.pop(0)
+    a, b, c = triple.reshape(-1).tolist()[0]
     
-    children = [A*current, B*current, C*current]
-    for child in children:
-      if 2*int(child[-1])**2 < limit:
-        stack.append(child)
-  
-  return triples
+    if c <= c_bound:
+      yield a, b, c
+      triples.append(A * triple)
+      triples.append(B * triple)
+      triples.append(C * triple)
 
-def highest_powers(pythag_triples, limit): # returns dict of {c: highest exponent n with 2c^n <= limit}
-  result = {}
-  for _, _, c in pythag_triples:
-    exponent = next(i for i in count() if 2*c**(i+1) > limit)
-    result[c] = exponent
-  return result
-
-def S(R, r, pythag_triples, max_powers):
-  # x(t) = acos(t) + rcos(kt), y(t) = asin(t) - rsin(kt)
-  a = R - r
-  k = a / r
-  
-  # x1 = acos(t), x2 = rcos(kt), y1 = asin(t), y2 = rsin(kt)
-  # iterate through values of x1, see which values of t make x2, y1, y2 integers
-  
-  total = 0
-  
-  for pimul, x1, y_equals_0 in pimuls_and_x1(R, r, a, pythag_triples, max_powers):
-    acos_ = acos(x1/a)
-    
-    t = pimul*pi - acos_
-    kt = k*t
-    
-    x2 = r*cos(kt)
-    
-    x = round(x1 + x2)
-    
-    if y_equals_0:
-      total += abs(x)
+def chebyshev_cos(n, cosx, sign=1, pifrac=Fraction(0)):
+  # Computes cos(sign*arccos(cosx) + pifrac*pi) using the Chebyshev method:
+  # cos(nx) = 2*cos(x)*cos((n-1)x) - cos((n-2)x)
+  if n == 1:
+    num, den = pifrac.numerator, pifrac.denominator
+    if den == 1:
+      if num % 2 == 0:
+        # cos x
+        return cosx
+      else: # num % 2 == 1
+        # cos(x+pi) = -cos x
+        return -cosx
+    elif den == 2:
+      b, c = cosx.numerator, cosx.denominator
+      a = round(sqrt(c*c - b*b))
+      if num % 4 == 1:
+        # cos(x+pi/2) = -sin x
+        return Fraction(-a * sign, c)
+      else: # num % 4 == 3 (others blocked by Fraction)
+        # cos(x+3pi/2) = sin x
+        return Fraction(a * sign, c)
     else:
-      y1 = a*sin(t)
-      y2 = r*sin(kt)
-      
-      y = round(y1 - y2)
-      total += 2*abs(x) + 2*abs(y)
+      # cos will only be rational when pifrac is a half-integer or integer
+      raise Exception(f'Unfamiliar pifrac: {pifrac}')
+  elif n == 2:
+    # double-angle identity: cos(2x) = 2(cos(x))^2 - 1
+    return 2*chebyshev_cos(1, cosx, sign=sign, pifrac=pifrac)**2 - 1
+  else:
+    # aforementioned Chebyshev identity: cos(nx) = 2*cos(x)*cos((n-1)x) - cos((n-2)x)
+    return (2 * chebyshev_cos(1, cosx, sign=sign, pifrac=pifrac)
+      * chebyshev_cos(n - 1, cosx, sign=sign, pifrac=pifrac)
+      - chebyshev_cos(n - 2, cosx, sign=sign, pifrac=pifrac))
+
+def chebyshev_sin(n, cosx, sign=1, pifrac=Fraction(0)):
+  # Computes sin(sign*arccos(cosx) + pifrac*pi) using the Chebyshev method:
+  # sin(nx) = 2*cos(x)*sin((n-1)x) - sin((n-2)x)
+  if n == 1:
+    num, den = pifrac.numerator, pifrac.denominator
+    if den == 1:
+      b, c = cosx.numerator, cosx.denominator
+      a = round(sqrt(c*c - b*b))
+      if num % 2 == 0:
+        # sin x
+        return Fraction(a * sign, c)
+      else: # num % 2 == 1
+        # sin(x+pi) = -sin x
+        return Fraction(-a * sign, c)
+    elif den == 2:
+      if num % 4 == 1:
+        # sin(x+pi/2) = cos x
+        return cosx
+      else: # num % 4 == 3 (others blocked by Fraction)
+        # sin(x+3pi/2) = -cos x
+        return -cosx
+    else:
+      # sin will only be rational when pifrac is a half-integer or integer
+      raise Exception(f'Unfamiliar pifrac: {pifrac}')
+  elif n == 2:
+    # double-angle identity: sin(2x) = 2sin(x)cos(x)
+    return (2 * chebyshev_sin(1, cosx, sign=sign, pifrac=pifrac)
+      * chebyshev_cos(1, cosx, sign=sign, pifrac=pifrac))
+  else:
+    # aforementioned Chebyshev identity: sin(nx) = 2*cos(x)*sin((n-1)x) - sin((n-2)x)
+    return (2 * chebyshev_cos(1, cosx, sign=sign, pifrac=pifrac)
+      * chebyshev_sin(n - 1, cosx, sign=sign, pifrac=pifrac)
+      - chebyshev_sin(n - 2, cosx, sign=sign, pifrac=pifrac))
+
+def pattern(Q, af, bf):
+  # Produces a dictionary of all possible combinations of af and bf (i.e. negative, in reverse order)
+  # to the produced sinQt, cosQt with t = arcsin of the first one and arccos of the second one
+  # (I think). This is done using multiples of pi: x, pi - x, pi + x, 2pi - x.
+  # It's a dictionary for ease of looking up values for use with fractional Q.
   
-  return total
+  patt = {}
+  
+  m = 2 if Q % 2 == 0 else 3
+  
+  for cosx, sign, pifrac in [
+    (af, 1, Fraction(0)), (af, -1, Fraction(m, 2)),
+      (af, 1, Fraction(m, 2)), (af, -1, Fraction(m)),
+    (bf, 1, Fraction(0)), (bf, -1, Fraction(m, 2)),
+      (bf, 1, Fraction(m, 2)), (bf, -1, Fraction(m)),
+  ]:
+    sinQt = chebyshev_sin(Q, cosx, sign=sign, pifrac=pifrac)
+    cosQt = chebyshev_cos(Q, cosx, sign=sign, pifrac=pifrac)
+    sint = chebyshev_sin(1, cosx, sign=sign, pifrac=pifrac)
+    cost = chebyshev_cos(1, cosx, sign=sign, pifrac=pifrac)
+    
+    patt[sint, cost] = (sinQt, cosQt)
+  
+  return patt
+
+def specials(N):
+  special_total = 0
+  
+  for a, b, c in generate_pythagorean_triples(N):
+    for Q in count(2):
+      if (Q + 1) * c**Q > N:
+        # No possible values of R <= N
+        break
+      
+      af = Fraction(a, c)
+      bf = Fraction(b, c)
+      
+      # first, forwards - always
+      # calculate the sum of all r-values such that R <= N
+      r_bound = N // ((Q + 1) * c**Q)
+      sum_r = c**Q * r_bound * (r_bound + 1) // 2
+      
+      patt = pattern(Q, af, bf)
+      
+      for (sint, cost), (sinQt, cosQt) in patt.items():
+        # add the sums of all the points with this Q and triple
+        special_total += sum_r * (abs(Q*cost + cosQt) + abs(Q*sint - sinQt))
+      
+      # then, backwards
+      for Qn in count(Q + 1):
+        if gcd(Qn, Q) != 1: # reduces to something simpler - ignore
+          continue
+        
+        Qf = Fraction(Qn, Q)
+        if (Qf + 1) * c**Qn > N: # equivalent to (Qf + 1) * (c**Q)**Qf
+          break
+        
+        # this method of calculating r_bound isn't *strictly* necessary for N=10^6,
+        # but for N>10^6 we have to consider the case where c and Q aren't multiples
+        # but also aren't coprime
+        g = gcd(c, Q)
+        r_bound = (N * g) // (c**Qn * (Qn + Q))
+        if r_bound == 0:
+          # no r-values: don't bother calculating any further
+          break
+        sum_r = (Q // g) * c**Qn * r_bound * (r_bound + 1) // 2
+        
+        npatt = pattern(Qn, af, bf)
+        
+        for (sintQ, costQ), (sint, cost) in patt.items():
+          # sin(Qn/Q t) = sin(Qn sin arcsin(1/Q t)); 1/Q's patterns are just the reverse
+          sinQt, cosQt = npatt[sintQ, costQ]
+          special_total += sum_r * (abs(Qf*cost + cosQt) + abs(Qf*sint - sinQt))
+  
+  return special_total
 
 def T(N):
-  pythag_triples = sorted(pythagorean_triples_up_to(N), key=lambda triple: triple[-1])
-  print('Pythagorean triples generated; there are {} triples: {}'.format(len(pythag_triples), pythag_triples))
-  
-  max_powers = highest_powers(pythag_triples, N)
-  
-  timestamp = clock()
-  timestamp_sums = [timestamp]
-  
-  total = 0
-  for R in range(3, N+1):
-    r_total = 0
-    
-    for r in range(1, ceil(R/2)):
-      this_s = S(R, r, pythag_triples, max_powers)
-      total += this_s
-      r_total += this_s
-    
-    if R % 100 == 0:
-      new_timestamp = clock()
-      timestamp_sums.append(timestamp_sums[-1] + new_timestamp)
-      
-      coeffs = np.polyfit(timestamp_sums, list(range(0, R+1, 100)), 1)
-      projected = np.polyval(coeffs, N)
-      projh, projmins = divmod(projected, 3600)
-      projm, projs = divmod(projmins, 60)
-      
-      print('R={}, total={} ({} this time), took {:.4f} seconds (R={} projected to take {:.0f}h{:.0f}m{:.0f}s)'
-        .format(R, total, r_total, new_timestamp - timestamp, N, projh, projm, projs))
-      timestamp = new_timestamp
-      
-      sys.stdout.flush()
-  
-  return total
+  return normals(N) + specials(N)
 
-print(T(1000000))
+if __name__ == '__main__':
+  print(T(10**6))

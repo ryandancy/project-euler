@@ -1,0 +1,322 @@
+\documentclass[12pt]{article}
+
+\usepackage{amssymb, amsfonts}
+\usepackage[pdftex]{hyperref}
+\usepackage{multirow}
+
+\usepackage{mathtools}
+\DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
+
+\allowdisplaybreaks
+
+\title{Problem 450 -- Hypocycloid and Lattice points}
+\author{Ryan Dancy}
+\date{1 July 2019}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+The following is an explanation of the solution to Project Euler problem 450 ``Hypocycloid and Lattice points'' (\url{https://projecteuler.net/problem=450}), 100\% difficulty, contained in \texttt{problem450.py}.
+
+There are two classes of lattice points on hypocycloids that we must consider. The first occur when $t = \frac{n\pi}{2}, n \in \mathbb{Z}$; then $\sin t$ and $\cos t$ are equal to $\pm 1$ or $0$. We will call these points ``normals''. The second class of points have, in general, the following structure: $\sin t = \frac{a}{c}$ and $\cos t = \frac{b}{c}$ such that $a^2 + b^2 = c^2$ (i.e. $a$, $b$, and $c$ form a Pythagorean triple). We will call this class of points ``specials''. Finding $T(N)$ is a matter of summing the calculated values for the normals and the specials.
+
+We will now discuss the calculation of $T(N)$ for normals and specials separately.
+
+\section{Normals}
+
+For the purposes of the normals, it is simpler to transform the parametric equations of the hypocycloid as such:
+\begin{align}
+  x(t) &= (R - r)\cos t + r \cos\left(\frac{R}{r}t - t \right) \nonumber \\
+  x(t) &= (R - r)\cos t + r \cos \frac{R}{r} t \cos t + r \sin \frac{R}{r} t \sin t \label{normalx} \\
+  \intertext{and}
+  y(t) &= (R - r)\sin t - r \sin\left(\frac{R}{r}t - t \right) \nonumber \\
+  y(t)&= (R - r)\sin t - r \sin \frac{R}{r} t \cos t + r \cos \frac{R}{r} t \sin t \label{normaly}
+\end{align}
+Now, as previously mentioned, for normals, \[ t = \frac{n\pi}{2} \] for some $n \in \mathbb{Z}$.
+As well, for $\sin\frac{R}{r}t$ and $\cos\frac{R}{r}t$ to be rational, \[ \frac{R}{r}t = \frac{Rn\pi}{2r} \] must be of the form $\frac{m\pi}{2}$ for some $m \in \mathbb{Z}$. This occurs when $r$ divides $Rn$.
+In other words, let $R_r$ and $r_r$ be coprime integers such that \[ \frac{R_r}{r_r} = \frac{R}{r}, \] i.e. $R_r$ and $r_r$ are respectively the numerator and denominator of the reduced fraction $\frac{R}{r}$. ($R_r$ = $\frac{R}{\gcd(R, r)}$ and $r_r$ = $\frac{r}{\gcd(R, r)}$.) Then $\frac{R}{r} t$ is of the form $\frac{m\pi}{2}$ when $n$ is a multiple of $r_r$.
+
+Consider the fact that for any angle $\theta$, $\sin\theta = \sin(\theta + 2\pi)$ and $\cos\theta = \cos(\theta + 2\pi)$. Let $n = 4kr_r + mr_r$ for some $k \in \mathbb{Z}$ and $n \equiv m \pmod 4$, $0 \le m \le 3$. Then \[ \frac{n\pi}{2} = \frac{mr_r\pi}{2} + 2\pi kr_r \] and \[ \frac{Rn\pi}{2r} = \frac{mR_r\pi}{2} + 2\pi kR_r. \] Due to the identity previously mentioned, the $2\pi kr_r$ and $2\pi kR_r$ terms are irrelevant for the purpose of determining $x(t)$ and $y(t)$. Therefore, only the cases with $k = 0$, that is $n = 0,\,r_r,\,2r_r,\,3r_r$, must be considered.
+
+If $n = 0$, then $t = 0$ and $\frac{R}{r} t = 0$. Then, by equations \ref{normalx} and \ref{normaly}, \[ x(t) = (R - r) + r = R \] and \[ y(t) = 0. \] Thus, when $n = 0$, \[ |x| + |y| = R. \]
+
+If $n = r_r$, then $t = \frac{r_r\pi}{2}$ and $\frac{R}{r} t = \frac{R_r\pi}{2}$. For the same reason that we only need to consider $n$ between 0 and $3r_r$, we only need to consider $R_r$ and $r_r$ between 0 and 3 modulo 4. We obtain the following table. Note that since $2r < R$, $|2r - R| = R - 2r$.
+
+\begin{center}
+\begin{tabular}{c|c|c|c}
+  $R_r \pmod 4$ & $r_r \pmod 4$ & $x,\,y$ & $|x| + |y|$ \\ \hline
+  0 & 0 & $R$, 0 & $R$ \\
+  0 & 1 & 0, $R$ & $R$ \\
+  0 & 2 & $-R$, 0 & $R$ \\
+  0 & 3 & 0, $-R$ & $R$ \\ \hline
+  1 & 0 & $R - r$, $-r$ & $R$ \\
+  1 & 1 & $r$, $R - r$ & $R$ \\
+  1 & 2 & $r - R$, $r$ & $R$ \\
+  1 & 3 & $-r$, $r - R$ & $R$ \\ \hline
+  2 & 0 & $R - 2r$, 0 & $R - 2r$ \\
+  2 & 1 & 0, $R - 2r$ & $R - 2r$ \\
+  2 & 2 & $2r - R$, 0 & $R - 2r$ \\ 
+  2 & 3 & 0, $2r - R$ & $R - 2r$ \\ \hline
+  3 & 0 & $R - r$, $-r$ & $R$ \\
+  3 & 1 & $r$, $R - r$ & $R$ \\
+  3 & 2 & $r - R$, $r$ & $R$ \\
+  3 & 3 & $-r$, $r - R$ & $R$ \\
+\end{tabular}
+\end{center}
+
+If $n = 2r_r$, then $t = r_r\pi$ and $\frac{R}{r} t = R_r\pi$. Again, since the sine and cosine functions have period $2\pi$, we need only consider $R_r$ and $r_r$ congruent to 0 and 1 modulo 2. We obtain the following table.
+
+\begin{center}
+\begin{tabular}{c|c|c|c}
+  $R_r \pmod 2$ & $r_r \pmod 2$ & $x,\,y$ & $|x| + |y|$ \\ \hline
+  0 & 0 & $R$, 0 & $R$ \\
+  0 & 1 & $-R$, 0 & $R$ \\ \hline
+  1 & 0 & $R - 2r$, 0 & $R - 2r$ \\
+  1 & 1 & $2r - R$, 0 & $R - 2r$ \\
+\end{tabular}
+\end{center}
+
+If $n = 3r_r$, then $t = \frac{3r_r\pi}{2}$ and $\frac{R}{r} t = \frac{3R_r\pi}{2}$. We obtain the following table.
+
+\begin{center}
+\begin{tabular}{c|c|c|c}
+  $R_r \pmod 4$ & $r_r \pmod 4$ & $x,\,y$ & $|x| + |y|$ \\ \hline
+  0 & 0 & $R$, 0 & $R$ \\
+  0 & 1 & 0, $-R$ & $R$ \\
+  0 & 2 & $-R$, 0 & $R$ \\
+  0 & 3 & 0, $R$ & $R$ \\ \hline
+  1 & 0 & $R - r$, $-r$ & $R$ \\
+  1 & 1 & $-r$, $r - R$ & $R$ \\
+  1 & 2 & $r - R$, $r$ & $R$ \\
+  1 & 3 & $r$, $R - r$ & $R$ \\ \hline
+  2 & 0 & $R - 2r$, 0 & $R - 2r$ \\
+  2 & 1 & 0, $2r - R$ & $R - 2r$ \\
+  2 & 2 & $2r - R$, 0 & $R - 2r$ \\ 
+  2 & 3 & 0, $R - 2r$ & $R - 2r$ \\ \hline
+  3 & 0 & $R - r$, $-r$ & $R$ \\
+  3 & 1 & $-r$, $r - R$ & $R$ \\
+  3 & 2 & $r - R$, $r$ & $R$ \\
+  3 & 3 & $r$, $R - r$ & $R$ \\
+\end{tabular}
+\end{center}
+
+Note that for all four possible values of $n$, the value of $r_r$ is irrelevant in determining $|x| + |y|$. We may then obtain the following summary table.
+
+\begin{center}
+\begin{tabular}{c|c|c|c}
+  $R_r \pmod 4$ & $n$ & $|x| + |y|$ & Sum of $|x| + |y|$ for all $n$ \\ \hline
+  \multirow{4}{*}{0} & 0 & $R$ & \multirow{4}{*}{$4R$} \\
+  & $r_r$ & $R$ & \\
+  & $2r_r$ & $R$ & \\
+  & $3r_r$ & $R$ & \\ \hline
+  \multirow{4}{*}{1} & 0 & $R$ & \multirow{4}{*}{$4R - 2r$} \\
+  & $r_r$ & $R$ & \\
+  & $2r_r$ & $R - 2r$ & \\
+  & $3r_r$ & $R$ & \\ \hline
+  \multirow{4}{*}{2} & 0 & $R$ & \multirow{4}{*}{$4R - 4r$} \\
+  & $r_r$ & $R - 2r$ & \\
+  & $2r_r$ & $R$ & \\
+  & $3r_r$ & $R - 2r$ & \\ \hline
+  \multirow{4}{*}{3} & 0 & $R$ & \multirow{4}{*}{$4R - 2r$} \\
+  & $r_r$ & $R$ & \\
+  & $2r_r$ & $R - 2r$ & \\
+  & $3r_r$ & $R$ & \\
+\end{tabular}
+\end{center}
+
+Thus, for any pair $(R, r)$, we add $4R$ if $R_r \equiv 0 \pmod 4$, $4R - 2r$ if $R_r \equiv 1 \pmod 2$ (i.e. $R_r$ is odd), or $4R - 4r$ if $R_r \equiv 2 \pmod 4$.
+
+Consider the case where $R$ is odd. Then, for any $r$, either $r \perp R$, in which case $R_r = R$ and so $R_r$ is odd, or $r$ will reduce $R$. In the latter case, $R$'s prime factorization does not contain 2, and so that of $R_r = \frac{R}{\gcd(R, r)}$ cannot contain 2 either. Thus, $R_r$ is odd in either case. Therefore, for each $r$, we add $4R - 2r$ as dictated by the above table.
+
+Let $U(R)$ denote the amount added to $T(N)$ from the normals for any given $R$, i.e. \[ U(R) = \sum_{r=1}^{\floor*{\frac{R-1}{2}}} S(R, r). \] Since $2r < R$ and $r \ge 1$, there are $\floor*{\frac{R - 1}{2}}$ values of $r$ for any given $R$. For odd $R$, this simplifies to $\frac{R-1}{2}$. Since we add $4R - 2r$ for each $r$, and the sum of the integers from 1 to $m$ is $\frac{1}{2}m(m+1)$, this yields
+\begin{equation}
+  U(R) = 4R\left( \frac{R-1}{2} \right) - 2\left( \frac{1}{2} \right)\left( \frac{R-1}{2} \right) \left( \frac{R-1}{2} + 1 \right) = \frac{1}{4} (R-1)(7R-1) \label{oddnormals}
+\end{equation}
+added for any given odd $R$.
+
+For even $R$, it is more complicated. For a given even $R$, let $k$ be a nonnegative integer such that $2^k$ is the largest power of 2 that divides $R$. Then, for each $r$, we add $4R - 4r$ if $2^k$ divides $r$, $4R - 2r$ if $2^{k-1}$ divides $r$ but $2^k$ does not, and $4R$ if neither divides $r$.
+
+Now, $2^k$ will divide $r$ when $r = 2^k m$ for an arbitrary integer $m \ge 0$, and $2^{k-1}$, but not $2^k$, will divide $r$ for $r = 2^{k-1} + 2^k m$. It also turns out that the number of values of $r$ fulfilling these criteria for a given $R$ is equal to
+\begin{equation}
+  \frac{R - 2^k}{2^{k+1}} \label{numberterms}
+\end{equation}
+for both adding $4R - 4r$ and adding $4R - 2r$. This is because for some odd natural number $x$, $R = 2^k x$, and so \[ \frac{R - 2^k}{2^{k+1}} = \frac{2^k x - 2^k}{2^{k+1}} = \frac{x - 1}{2}. \] Since $x$ is odd, this is an integer, and since there are $\floor*{\frac{R-1}{2}}$ values of $r$, and each value fulfilling the criteria occurs once every $2^k$ values, this is the number of values fulfilling each criteria.
+
+Now, we are interested in finding the sum of the values of $r$ fulfilling each criterion so that we may compute $4R - 4r$ and $4R - 2r$ for all values of $r$ without looping. Since the values of $r$ fulfilling each criteria form arithmetic sequences, of which we wish to sum the first $\frac{R - 2^k}{2^{k+1}}$ terms, this is simple:
+\begin{itemize}
+  \item For the $4R - 4r$ criterion, the arithmetic sequence is $r_n = 2^{k - 1} + 2^k(n - 1)$, and so the sum of the first $n$ terms is \[ S_n = \frac{n}{2}[2(2^{k - 1}) + (n-1)2^k] = \frac{n}{2}(2^k n) = 2^{k-1} n^2. \] Using expression \ref{numberterms} for the number of terms in which we are interested, this yields a sum of \[ S = 2^{k - 1}\left( \frac{R-2^k}{2^{k+1}} \right) \] which simplifies to
+  \begin{equation}
+    S = \frac{(R - 2^k)^2}{2^{k+3}} \label{fourRfourr}
+  \end{equation}
+  \item For the $4R - 2r$ criterion, the arithmetic sequence is $r_n = 2^k + 2^k(n - 1)$, and so the sum of the first $n$ terms is \[ S_n = \frac{n}{2}[2(2^k) + (n-1)2^k] = \frac{n}{2}(2^k + 2^k n) = 2^{k-1} n (n + 1) \] Using expression \ref{numberterms} for the number of terms in which we are interested, this yields a sum of \[ S = 2^{k - 1}\left( \frac{R-2^k}{2^{k+1}} \right) \left( \frac{R-2^k}{2^{k+1}} + 1 \right) \] which simplifies to
+  \begin{equation}
+    S = \frac{R^2 - 4^k}{2^{k+3}} \label{fourRtwor}
+  \end{equation}
+\end{itemize}
+
+To derive an equation for $U(R)$ for even $R$, we note that $4R$ is added for all values of $r$, of which there are $\floor*{\frac{R-1}{2}}$. Since $R$ is even, this simplifies to $\frac{R-2}{2}$. Then, we note that we may simply subtract $2r$ and $4r$ when $r$ fulfils the appropriate criterion. Using equations \ref{fourRfourr} and \ref{fourRtwor}, this gives an equation for $U(R)$ of
+\begin{align}
+  U(R) &= 4R\left(\frac{R-2}{2}\right) - 4\left[ \frac{(R - 2^k)^2}{2^{k+3}} \right] - 2\left( \frac{R^2 - 4^k}{2^{k+3}} \right) \nonumber \\
+  &= 2R^2 - 4R - \frac{4(R - 2^k)^2 + 2R^2 - 2(4^k)}{2^{k+3}} \nonumber \\
+  &= 2R^2 - 4R - \frac{6R^2 - 8(2^k)R + 2(2^{2k})}{2^{k+3}} \nonumber \\
+  &= 2R^2 - 4R - \frac{3R^2}{2^{k+2}} + R - 2^{k-2} \nonumber \\
+  &= R^2\left( 2 - \frac{3}{2^{k+2}} \right) - 2^{k-2} - 3R \nonumber \\
+  &= \frac{R^2}{2^{k+3}} (2^{k+3} - 3) - 2^{k-2} - 3R \label{evennormals}
+\end{align}
+Note that this does not apply to cases with odd $R$ since it assumes that $\floor*{\frac{R-1}{2}} = \frac{R-2}{2}$, which is not true for odd $R$.
+
+Thus, combining equations \ref{oddnormals} and \ref{evennormals} into a single expression,
+\begin{equation}
+  U(R) =
+  \begin{dcases}
+    \frac{1}{4}(R - 1)(7R - 1) & \text{if } R \text{ is odd} \\
+    \frac{R^2}{2^{k+3}}(2^{k+3} - 3) - 2^{k-2} - 3R & \text{if } R \text{ is even} \\
+  \end{dcases}
+  \label{UR}
+\end{equation}
+
+Let $T_n(N)$ denote the contribution to $T(N)$ from the normals. Then \[ T_n(N) = \sum_{R=3}^N U(R). \] We will now find an explicit expression for $T_n(N)$. Once again, it is easier to consider the odd and even values of $R$ separately.
+
+For odd $R$, consider that there are $\floor*{\frac{N-1}{2}}$ odd values of $R$ such that $3 \le R \le N$. Let $R = 2n + 1$ for some positive integer $n \ge 1$. Then, using equation \ref{UR},
+\begin{align}
+  \sum_{R=3,\text{ odd}}^N U(R) &= \sum_{n=1}^{\floor*{\frac{N-1}{2}}} U(2n + 1) \nonumber \\
+  &= \sum_{n=1}^{\floor*{\frac{N-1}{2}}} \left[ \frac{1}{4}(2n + 1 - 1)(7(2n + 1) - 1) \right] \nonumber \\
+  &= \sum_{n=1}^{\floor*{\frac{N-1}{2}}} (7n^2 + 3n) \nonumber \\
+  \begin{split}
+    &= \frac{7}{6} \floor*{\frac{N-1}{2}} \left( \floor*{\frac{N-1}{2}} + 1 \right) \left( 2\floor*{\frac{N-1}{2}} + 1 \right) \\
+    &\qquad + \frac{3}{2} \floor*{\frac{N-1}{2}} \left( \floor*{\frac{N-1}{2}} + 1 \right)
+  \end{split} \nonumber \\
+  &= \frac{1}{3} \floor*{\frac{N-1}{2}} \left( \floor*{\frac{N-1}{2}} + 1 \right) \left( 7\floor*{\frac{N-1}{2}} + 8 \right) \label{TnoddR}
+\end{align}
+
+For even $R$, we may treat $R$ as if $1 \le R \le N$ rather than $3 \le R \le N$ since the only even $R$ between 1 and 3 is 2, which has $k = 1$, yielding $U(2) = 0$ and so the $R = 2$ case has no effect on the result. Now, the number of values of $R$ with a certain value of $k \ge 1$ less than $N$ is \[ \floor*{\frac{N + 2^k}{2^{k+1}}}, \] and the maximum value of $k$ for any $R \le N$ is $\floor{\log_2 N}$. Note that if $2^k$ divides $R$, then $\frac{R}{2^k}$ is odd. Thus, let $R = 2^k(2n - 1)$ for some integer $n \ge 1$. Then
+\begin{equation*}
+  \sum_{R=3,\text{ even}}^N U(R) = \sum_{k=1}^{\floor{\log_2 N}} \sum_{n=1}^{\floor*{\frac{N+2^k}{2^{k+1}}}} U(2^k(2n - 1))
+\end{equation*}
+Now, using equation \ref{UR},
+\begin{align}
+  U(2^k(2n - 1)) &= \frac{[2^k(2n-1)]^2}{2^{k+3}}(2^{k+3} - 3) - 2^{k-2} - 3(2^k)(2n-1) \nonumber \\
+  &= 2^{k-2}(2n-1)^2(2^{k+3}-3) - 2^{k-2} - 3(2^k)(2n-1) \nonumber \\
+  \begin{split}
+    &= 4n^2(2^{2k+1}) - 4n(2^{2k+1}) + 2^{2k+1} - 12n^2(2^{k-2}) + 12n(2^{k-2}) \\
+    &\qquad - 3(2^{k-2}) - 2^{k-2} - 3n(2^{k+1}) + 3(2^k)
+  \end{split} \nonumber \\
+  &= 8n^2(2^{2k}) - 8n(2^{2k}) + 2(2^{2k}) - 3n^2(2^k) - 3n(2^k) + 2(2^k) \nonumber \\
+  &= 2^{2k+1}(4n^2 - 4n + 1) - 2^k(3n^2 + 3n - 2) \nonumber \\
+  &= 2^{2k+1}(2n-1)^2 - 2^k(3n^2 + 3n - 2) \label{TnevenR}
+\end{align}
+Then the inner sum expands as follows:
+\begin{align}
+  \sum_{n=1}^{\floor*{\frac{N+2^k}{2^{k+1}}}} U(2^k(2n-1)) = \sum_{n=1}^{\floor*{\frac{N+2^k}{2^{k+1}}}} \left[2^{2k+1}(2n-1)^2 - 2^k(3n^2 + 3n - 2)\right] \nonumber \\
+  = \frac{2^k}{3} \floor*{\frac{N+2^k}{2^{k+1}}} \left(\floor*{\frac{N+2^k}{2^{k+1}}}^2 (2^{k+3} - 3) - 2^{k+1} - 9\floor*{\frac{N+2^k}{2^{k+1}}} \right)
+\end{align}
+
+Then, in total,
+\begin{multline} \label{Tn}
+  T_n(N) = \frac{1}{3} \floor*{\frac{N-1}{2}} \left( \floor*{\frac{N-1}{2}} + 1 \right) \left( 7\floor*{\frac{N-1}{2}} + 8 \right) \\
+  + \sum_{k=1}^{\floor{\log_2 N}} \frac{2^k}{3} \floor*{\frac{N+2^k}{2^{k+1}}} \left(\floor*{\frac{N+2^k}{2^{k+1}}}^2 (2^{k+3} - 3) - 2^{k+1} - 9\floor*{\frac{N+2^k}{2^{k+1}}} \right)
+\end{multline}
+
+This may be computed easily. In \texttt{problem450.py}, this is computed in the \texttt{normals()} function.
+
+\section{Specials}
+
+For the purpose of the specials, let $Q = \frac{R-r}{r}$. Then, $Qr = R - r$ and $R = (Q + 1)r$. We will consider the parametric equations of the hypoycloid in the following form using $Q$:
+\begin{align*}
+  x(t) &= Qr \cos t + r\cos Qt \\
+  &= r(Q\cos t + \cos Qt)
+\end{align*}
+and 
+\begin{align*}
+  y(t) &= Qr \sin t - r\sin Qt \\
+  &= r(Q\sin t - \sin Qt).
+\end{align*}
+Then \[ |x| + |y| = r(|Q\cos t + \cos Qt| + |Q\sin t - \sin Qt|). \]
+
+It follows from $1 \le r < \frac{R}{2}$ that $1 < Q \le R$. Consider whole-numbered $Q$. Since by the Chebyshev method any $\sin Qt$ or $\cos Qt$ can be expressed in terms of $\sin t$ and $\cos t$ for whole $Q$, $\sin Qt$ and $\cos Qt$ are rational iff $\sin t$ and $\cos t$ are rational. Furthermore, if $c$ is the denominator of $\sin t$ and $\cos t$ (which must have the same denominator because their numerators and the common denominator form a Pythagorean triple), then $c^Q$ is the denominator of $\sin Qt$ and $\cos Qt$, with the numerators forming the legs of another Pythagorean triple. Because of this, for $x$ and $y$ to be integers, $r$ must be divisible by $c^Q$, and so $R$ must be divisible by $(Q+1)c^Q$.
+
+For non-integral $Q$, consider that if $\sin(\frac{1}{n} t)$ and $\cos(\frac{1}{n} t)$ are rational for some whole number $n$, then $\sin(\frac{m}{n} t)$ and $\cos(\frac{m}{n} t)$ are rational for any whole number $m$ since it may be reduced via the Chebyshev method. As well, for positive integers $a_1$, $c_1$, $a_2$, $c_2$, and $n$, \[ \sin\left(n \arcsin\frac{a_1}{c_1}\right) = \frac{a_2}{c_2} \rightarrow \sin\left(\frac{1}{n} \arcsin\frac{a_2}{c_2}\right) = \frac{a_1}{c_1} \] and \[ \cos\left(n \arccos\frac{a_1}{c_1}\right) = \frac{a_2}{c_2} \rightarrow \cos\left(\frac{1}{n} \arccos\frac{a_2}{c_2}\right) = \frac{a_1}{c_1}. \] Fractional values of $Q$ will be discussed in greater detail later.
+
+Now, consider that for integral $Q$, since using the Chebyshev method $\sin Qt$ and $\cos Qt$ will always reduce to an expression containing $\sin t$ and $\cos t$, the values of $\sin t$ and $\cos t$ determine the values of $\sin Qt$ and $\cos Qt$ for a given $Q$; that is, there is no way to have the same values of $\sin t$, $\cos t$, and $Q$ but different values of $\sin Qt$ and $\cos Qt$. Thus, if for any Pythagorean triple $(a, b, c)$ we can enumerate all possible combinations of $\sin t$ and $\cos t$, we also have all possible values of $\sin Qt$ and $\cos Qt$. This may be done by adding and subtracting $\pi$ and $2\pi$ to produce various angles around the unit circle, all of which lead to distinct $\sin t$ and $\cos t$. However, the parity of $Q$ will lead to duplication if not considered. Thus, we obtain all combinations through evaluating $\sin t$, $\cos t$, $\sin Qt$, and $\cos Qt$ for $t$ equal to the following for a given Pythagorean triple $(a, b, c)$:
+\begin{align*}
+  t &= \arccos\frac{a}{c} &\qquad t &= \arccos \frac{b}{c} \\
+  t &= \frac{m\pi}{2} - \arccos\frac{a}{c} &\qquad t &= \frac{m\pi}{2} - \arccos\frac{b}{c} \\
+  t &= \frac{m\pi}{2} + \arccos\frac{a}{c} &\qquad t &= \frac{m\pi}{2} + \arccos\frac{b}{c} \\
+  t &= m\pi - \arccos\frac{a}{c} &\qquad t &= m\pi - \arccos\frac{b}{c}
+\end{align*}
+where $m = 2$ if $Q$ is even and $m = 3$ if $Q$ is odd. This generates the following values for $(\sin t, \cos t)$, though not necessarily in this order:
+\begin{align*}
+  \left( \frac{b}{c}, \frac{a}{c} \right), \left( \frac{b}{c}, -\frac{a}{c} \right), \left( -\frac{b}{c}, -\frac{a}{c} \right), \left( -\frac{b}{c}, \frac{a}{c} \right), \\
+  \left( \frac{a}{c}, \frac{b}{c} \right), \left( \frac{a}{c}, -\frac{b}{c} \right), \left( -\frac{a}{c}, -\frac{b}{c} \right), \left( -\frac{a}{c}, \frac{b}{c} \right)
+\end{align*}
+Corresponding $\sin Qt$ and $\cos Qt$ values are generated as well, although they are not necessarily unique. This produces a map of $(\sin t, \cos t)$ values to $(\sin Qt, \cos Qt)$ values, which is generated by the \texttt{pattern()} function in \texttt{problem450.py}.
+
+What is especially interesting with regards to this map is that $\sin\frac{1}{n}t$ and $\cos\frac{1}{n}t$ may be computed by using the map for $Q = n$ in reverse, yielding the following method of computing $\sin Qt$ and $\cos Qt$ for fractional $Q = \frac{m}{n}$:
+\begin{enumerate}
+  \item Obtain the map for $Q = n$ and perform a reverse lookup of $t$.
+  \item Use the result as the key for the map for $Q = m$, yielding the values of $\sin \frac{m}{n}t$ and $\cos \frac{m}{n}t$.
+\end{enumerate}
+
+The last piece of knowledge necessary for a specials-determining algorithm is a function for the sum of all values of $r$ having specials for a given Pythagorean triple $(a, b, c)$ and a given value of $Q$ for any value of $N$. Let this function be denoted $\rho(N)$. Now, it was previously determined that $r$ must be divisible by $c^Q$, and so $R$ must be divisible by $(Q+1)c^Q$.
+
+For integer $Q$, it is clear that the values of $r$ will increase successively by $c^Q$. Therefore $\rho(N)$ will equal $c^Q$ multiplied by the sum of 1 to $n$, where $n$ is the number of valid values of $r$ for a given $N$, which is the same as the number of values of $R \le N$. Since $(Q+1)c^Q$ divides $R$, this is given by \[ \floor*{\frac{N}{(Q+1)c^Q}}, \] and so for integer $Q$,
+\begin{equation} \label{integerrho}
+  \rho(N) = \frac{c^Q}{2} \floor*{\frac{N}{(Q+1)c^Q}} \left( \floor*{\frac{N}{(Q+1)c^Q}} + 1 \right).
+\end{equation}
+
+For non-integer $Q = \frac{m}{n}$, it is slightly more complicated, since using the formula for integer $Q$ counts cases where $R$ is not an integer. For example, if $Q = \frac{3}{2}$ and $c = 25$, the above formula would count $(R, r) = (312.5, 125)$, which is obviously not valid. However, complicating this is the fact that if $c$ and $n$ (the denominator of $Q$) are non-coprime, multiplication by $c^Q$ is enough to make some otherwise invalid values of $r$ valid. A working formula for $Q = \frac{m}{n}$ is
+\begin{equation} \label{fractionalrho}
+  \rho(N) = \frac{c^m}{2}\floor*{\frac{n}{\gcd(c, n)}}M(M+1)
+\end{equation}
+where
+\begin{align*}
+  M &= \floor*{\frac{N}{c^m\left( \frac{m}{\gcd(c, n)} + \frac{n}{\gcd(c, n)} \right)}} \\
+  &= \floor*{\frac{N\gcd(c, n)}{c^m(m + n)}}.
+\end{align*}
+
+The following algorithm then suffices to calculate the specials' contribution to $T(N)$.
+\begin{enumerate}
+  \item For every Pythagorean triple $(a, b, c)$ such that $3c^2 \le N$ (i.e. $Q=2$, the lowest integral value of $Q$, has at least one $r$), we loop over integral values of $Q$ starting at 2 until $(Q+1)c^Q > N$.
+  \item We obtain the map of $\sin t$ and $\cos t$ values to $\sin Qt$ and $\cos Qt$ values for this triple and value of $Q$.
+  \item For each $(\sin t, \cos t, \sin Qt, \cos Qt)$ 4-tuple, we add \[ \rho(N)(|Q\cos t + \cos Qt| + |Q\sin t - \sin Qt|) \] to the total, obtaining $\rho(N)$ using equation \ref{integerrho}. (We compute $\rho(N)$ once.)
+  \item We then consider fractional values of $Q$ with the old integral $Q$ as the denominator. Let $n$ be the old value of $Q$. We loop over integral $m$ such that $m > n$ (i.e. $Q > 1$) and $m \perp n$, as otherwise $n$ would not be the denominator of $Q$. We stop when \[ \left( \frac{m}{n} + 1 \right) (c^n)^\frac{m}{n} = \left( \frac{m}{n} + 1 \right) c^m > N. \]
+  \item We then obtain the map of $\sin t$ and $\cos t$ values to $\sin Qt$ and $\cos Qt$ values for this triple and $Q = m$. We also calculate $\rho(N)$ using equation \ref{fractionalrho}.
+  \item We then loop over the \textit{original} map for the original integral $Q$, but in reverse, assigning $\sin t$ and $\cos t$ to the values of the map originally known as $\sin Qt$ and $\cos Qt$. We plug the keys of the map with denominator $c$ into the map for $Q = m$ to obtain the new $\sin Qt$ and $\cos Qt$ for $Q = \frac{m}{n}$.
+  \item For each of these combinations, we add \[ \rho(N)(|Q\cos t + \cos Qt| + |Q\sin t - \sin Qt|). \]
+\end{enumerate}
+Let the contribution to $T(N)$ obtained via this algorithm be $T_s(N)$. Then, using the equation for the normals' contribution, $T_n(N)$, from equation \ref{Tn}, \[ T(N) = T_n(N) + T_s(N). \]
+
+\section{Appendix}
+
+We calculate $\sin Qt$ and $\cos Qt$ for integer $Q$ using a recursive algorithm based on the \href{https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Chebyshev_method}{Chebyshev method} of finding the $n$th multiple-angle formulae for the sine and cosine functions. It states that for integral $n > 2$, \[ \sin n\theta = 2\cos\theta \sin((n-1)\theta) - \sin((n-2)\theta) \] and \[ \cos n\theta = 2\cos\theta\cos((n-1)\theta) - \cos((n-2)\theta). \]
+We use the standard double-angle formulae $\sin 2\theta = 2\sin\theta\cos\theta$ and $\cos 2\theta = 2\cos^2\theta - 1$ for the base case. Our algorithm calculates the exact rational value of \[ \sin\left(x\pi \pm \arccos\frac{b}{c}\right) \qquad \text{and} \qquad \cos\left(x\pi \pm \arccos\frac{b}{c}\right) \] for $x$ equal to an integer or a half-integer.
+
+The algorithm is implemented in \texttt{problem450.py} in the \texttt{chebyshev\_sin()} and \texttt{chebyshev\_cos()} functions.
+
+As well, the Pythagorean triples are generated using \href{https://en.wikipedia.org/wiki/Tree_of_primitive_Pythagorean_triples}{F. J. M. Barning's matrix method}, by which a tree of primitive Pythagorean triples is generated by multiplying the three matrices
+\begin{equation*}
+  A =
+  \begin{bmatrix}
+    1 & -2 & 2 \\
+    2 & -1 & 2 \\
+    2 & -2 & 3
+  \end{bmatrix}
+  \qquad B =
+  \begin{bmatrix}
+    1 & 2 & 2 \\
+    2 & 1 & 2 \\
+    2 & 2 & 3
+  \end{bmatrix}
+  \qquad C =
+  \begin{bmatrix}
+    -1 & 2 & 2 \\
+    -2 & 1 & 2 \\
+    -2 & 2 & 3
+  \end{bmatrix}
+\end{equation*}
+on the right by a column vector forming a Pythagorean triple, starting with $(3, 4, 5)^T$. Numpy is used to represent the matrices. Since in the tree formed by this method each `child' Pythagorean triple has a larger $c$ than its parent, all Pythagorean triples such that $3c^2 \le N$ may be easily generated by stopping when $3c^2 > N$.
+
+\end{document}
